@@ -113,7 +113,7 @@ class AITelegramGenerator:
                                 f"{global_counter}. {emoji.split(' ')[0]} <b>{match.team1} – {match.team2}</b>\n"
                                 f"🎯 Счет: <b>{match.score}</b>\n"
                                 f"✅ Ставка: <b>{match.recommendation_value}</b>\n"
-                                f"📊 Кэф: <b>{match.coefficient:.2f}</b>\n"
+                                f"📊 Кэф: <b>1.50</b>\n"  # Заглушка для коэффициента
                                 f"📌 {match.justification}\n\n"
                             )
                         else:  # football, handball
@@ -125,7 +125,7 @@ class AITelegramGenerator:
                                 f"{global_counter}. {emoji.split(' ')[0]} <b>{team1_rus} – {team2_rus}</b>\n"
                                 f"🏟️ Счет: <b>{match.score}</b> ({match.minute})\n"
                                 f"✅ Ставка: <b>{match.recommendation_value}</b>\n"
-                                f"📊 Кэф: <b>{match.coefficient:.2f}</b>\n"
+                                f"📊 Кэф: <b>1.50</b>\n"  # Заглушка для коэффициента
                                 f"📌 {match.justification}\n\n"
                             )
                     elif match.recommendation_type == 'total':

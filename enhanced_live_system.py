@@ -17,6 +17,7 @@ from enhanced_analyzers import (
 )
 from simple_report_generator import SimpleReportGenerator
 from ai_analyzer import AIAnalyzer
+from claude_simple_analyzer import ClaudeSimpleAnalyzer
 from ai_telegram_generator import AITelegramGenerator
 from telegram_integration import TelegramIntegration
 
@@ -42,6 +43,7 @@ class EnhancedLiveSystem:
         }
         self.report_generator = SimpleReportGenerator()
         self.ai_analyzer = AIAnalyzer()
+        self.claude_analyzer = ClaudeSimpleAnalyzer()
         self.ai_telegram_generator = AITelegramGenerator()
         self.telegram_integration = TelegramIntegration()
         
@@ -59,7 +61,7 @@ class EnhancedLiveSystem:
         
         # AI-анализ всех матчей
         try:
-            ai_recommendations = self.ai_analyzer.analyze_matches_with_ai(matches, sport_type)
+            ai_recommendations = self.claude_analyzer.analyze_matches_with_claude(matches, sport_type)
             logger.info(f"AI сгенерировал {len(ai_recommendations)} рекомендаций для {sport_type}")
             return ai_recommendations
         except Exception as e:
