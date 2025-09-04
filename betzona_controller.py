@@ -40,7 +40,7 @@ class BetzonaController:
         self.sport_urls = {
             'football': 'https://betzona.ru/live-futbol.html',
             'tennis': 'https://betzona.ru/live-tennis.html',
-            'table_tennis': 'https://betzona.ru/live-tennis.html',  # Используем теннис для настольного тенниса
+            'table_tennis': 'https://betzona.ru/live-tennis.html',  # Используем теннис, но фильтруем по типу
             'handball': 'https://betzona.ru/live-gandball.html'
         }
 
@@ -101,6 +101,16 @@ class BetzonaController:
                 if title_element:
                     league = title_element.get_text(strip=True)
             
+            # Фильтрация по типу спорта для тенниса и настольного тенниса
+            if sport_type == 'table_tennis':
+                # Проверяем, что это настольный теннис по названию турнира
+                if not self._is_table_tennis_match(league, team1, team2):
+                    return None
+            elif sport_type == 'tennis':
+                # Проверяем, что это обычный теннис (не настольный)
+                if self._is_table_tennis_match(league, team1, team2):
+                    return None
+            
             # Извлекаем ссылку на матч
             link = ""
             link_element = match_element.find('a')
@@ -122,6 +132,29 @@ class BetzonaController:
         except Exception as e:
             self.logger.error(f"Ошибка при парсинге матча: {e}")
             return None
+    
+    def _is_table_tennis_match(self, league: str, team1: str, team2: str) -> bool:
+        """Определяет, является ли матч настольным теннисом"""
+        # Ключевые слова для настольного тенниса
+        table_tennis_keywords = [
+            'настольный теннис', 'table tennis', 'пинг-понг', 'ping pong',
+            'ittf', 'wtt', 'world table tennis', 'european table tennis',
+            'championship table tennis', 'pro tour table tennis'
+        ]
+        
+        # Проверяем название турнира
+        league_lower = league.lower()
+        for keyword in table_tennis_keywords:
+            if keyword in league_lower:
+                return True
+        
+        # Проверяем названия команд (иногда в названиях есть указания на тип спорта)
+        team_names = f"{team1} {team2}".lower()
+        for keyword in table_tennis_keywords:
+            if keyword in team_names:
+                return True
+        
+        return False
 
     def get_live_matches(self, sport_type: str) -> List[MatchData]:
         """Получение live-матчей для указанного вида спорта"""

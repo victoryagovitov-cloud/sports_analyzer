@@ -25,7 +25,7 @@ HTTP_URLS = {
     'betzona': {
         'football': 'https://betzona.ru/live-futbol.html',
         'tennis': 'https://betzona.ru/live-tennis.html',
-        'table_tennis': 'https://betzona.ru/live-tennis.html',
+        'table_tennis': 'https://betzona.ru/live-tennis.html',  # Используем теннис, но фильтруем по типу
         'handball': 'https://betzona.ru/live-gandball.html'
     }
 }
