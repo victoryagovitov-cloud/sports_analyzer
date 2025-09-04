@@ -44,8 +44,8 @@ class FootballAnalyzer:
                 print("Ошибка перехода на страницу футбола Betboom")
                 return recommendations
             
-            # Получаем матчи с Betboom
-            betboom_matches = self.browser.find_matches('football')
+            # Получаем матчи с Betboom с повторными попытками
+            betboom_matches = self._safe_get_matches('football', 'Betboom')
             print(f"Найдено {len(betboom_matches)} футбольных матчей на Betboom")
             
             # Переходим на Scores24 для анализа статистики
@@ -53,20 +53,64 @@ class FootballAnalyzer:
                 print("Ошибка перехода на страницу футбола Scores24")
                 return recommendations
             
-            # Получаем матчи с Scores24
-            scores24_matches = self.browser.get_scores24_matches('football')
+            # Получаем матчи с Scores24 с повторными попытками
+            scores24_matches = self._safe_get_scores24_matches('football')
             print(f"Найдено {len(scores24_matches)} футбольных матчей на Scores24")
             
-            # Анализируем каждый матч
-            for match in betboom_matches:
-                recommendation = self._analyze_single_match(match, scores24_matches)
-                if recommendation:
-                    recommendations.append(recommendation)
+            # Анализируем каждый матч с обработкой ошибок
+            for i, match in enumerate(betboom_matches):
+                try:
+                    recommendation = self._analyze_single_match(match, scores24_matches)
+                    if recommendation:
+                        recommendations.append(recommendation)
+                except Exception as e:
+                    print(f"Ошибка анализа матча {i+1}/{len(betboom_matches)}: {e}")
+                    continue  # Продолжаем анализ следующих матчей
             
         except Exception as e:
-            print(f"Ошибка анализа футбольных матчей: {e}")
+            print(f"Критическая ошибка анализа футбольных матчей: {e}")
+            import traceback
+            traceback.print_exc()
         
         return recommendations
+    
+    def _safe_get_matches(self, sport_type: str, source_name: str):
+        """Безопасное получение матчей с повторными попытками"""
+        max_retries = ANALYSIS_SETTINGS.get('max_retries', 3)
+        retry_delay = ANALYSIS_SETTINGS.get('retry_delay_seconds', 5)
+        
+        for attempt in range(max_retries):
+            try:
+                matches = self.browser.find_matches(sport_type)
+                return matches
+            except Exception as e:
+                if attempt < max_retries - 1:
+                    print(f"Попытка {attempt + 1}/{max_retries} получения матчей из {source_name} неудачна: {e}")
+                    import time
+                    time.sleep(retry_delay)
+                else:
+                    print(f"Не удалось получить матчи из {source_name} после {max_retries} попыток: {e}")
+                    return []
+        return []
+    
+    def _safe_get_scores24_matches(self, sport_type: str):
+        """Безопасное получение матчей с Scores24 с повторными попытками"""
+        max_retries = ANALYSIS_SETTINGS.get('max_retries', 3)
+        retry_delay = ANALYSIS_SETTINGS.get('retry_delay_seconds', 5)
+        
+        for attempt in range(max_retries):
+            try:
+                matches = self.browser.get_scores24_matches(sport_type)
+                return matches
+            except Exception as e:
+                if attempt < max_retries - 1:
+                    print(f"Попытка {attempt + 1}/{max_retries} получения матчей из Scores24 неудачна: {e}")
+                    import time
+                    time.sleep(retry_delay)
+                else:
+                    print(f"Не удалось получить матчи из Scores24 после {max_retries} попыток: {e}")
+                    return []
+        return []
     
     def _analyze_single_match(self, betboom_match: MatchData, scores24_matches: List[Dict]) -> Optional[FootballRecommendation]:
         """

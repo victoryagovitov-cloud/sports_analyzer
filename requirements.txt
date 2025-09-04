@@ -3,3 +3,4 @@ beautifulsoup4
 fuzzywuzzy
 schedule
 python-dotenv
+psutil

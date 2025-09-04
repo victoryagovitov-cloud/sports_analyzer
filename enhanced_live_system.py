@@ -20,6 +20,7 @@ from ai_analyzer import AIAnalyzer
 from claude_final_integration import ClaudeFinalIntegration
 from ai_telegram_generator import AITelegramGenerator
 from telegram_integration import TelegramIntegration
+from system_watchdog import system_watchdog
 
 # Настройка логирования
 logging.basicConfig(
@@ -77,6 +78,9 @@ class EnhancedLiveSystem:
         start_time = datetime.now()
         all_recommendations = []
         
+        # Обновляем heartbeat
+        system_watchdog.heartbeat()
+        
         # Анализируем каждый вид спорта
         sports = ['football', 'tennis', 'table_tennis', 'handball']
         
@@ -84,6 +88,7 @@ class EnhancedLiveSystem:
             try:
                 recommendations = self.analyze_sport(sport)
                 all_recommendations.extend(recommendations)
+                system_watchdog.heartbeat()  # Обновляем heartbeat после каждого спорта
             except Exception as e:
                 logger.error(f"Ошибка при анализе {sport}: {e}")
         
@@ -172,6 +177,9 @@ class EnhancedLiveSystem:
         logger.info("Запуск непрерывного анализа live-ставок...")
         logger.info("Анализ будет выполняться каждые 50 минут")
         
+        # Запуск системного watchdog
+        system_watchdog.start()
+        
         # Отправляем сообщение о запуске в Telegram
         logger.info("Отправка сообщения о запуске в Telegram канал...")
         self.telegram_integration.send_startup_message()
@@ -182,9 +190,14 @@ class EnhancedLiveSystem:
         # Запускаем первый анализ сразу
         self.run_analysis_cycle()
         
-        # Запускаем планировщик
+        # Запускаем планировщик с обработкой ошибок
         while True:
-            schedule.run_pending()
+            try:
+                schedule.run_pending()
+            except Exception as e:
+                logger.error(f"Ошибка в планировщике: {e}")
+                logger.exception("Детали ошибки планировщика:")
+                # Продолжаем работу, не останавливаемся из-за одной ошибки
             time.sleep(60)  # Проверяем каждую минуту
     
     def run_single(self):

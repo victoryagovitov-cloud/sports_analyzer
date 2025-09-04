@@ -47,7 +47,14 @@ ANALYSIS_SETTINGS = {
     'handball_goal_difference': 5,  # Минимальная разница в голаx для гандбола
     'handball_analysis_minute_start': 10,  # Начало анализа тоталов (минута)
     'handball_analysis_minute_end': 45,  # Конец анализа тоталов (минута)
-    'handball_total_margin': 4  # Отступ для расчета тоталов
+    'handball_total_margin': 4,  # Отступ для расчета тоталов
+    # Настройки таймаутов для предотвращения зависания
+    'http_timeout_seconds': 30,  # Таймаут для HTTP-запросов
+    'analysis_timeout_seconds': 300,  # Максимальное время анализа одного цикла (5 минут)
+    'max_retries': 3,  # Максимальное количество повторных попыток
+    'retry_delay_seconds': 5,  # Задержка между повторными попытками
+    'watchdog_interval_seconds': 60,  # Интервал проверки watchdog (1 минута)
+    'max_memory_usage_percent': 80  # Максимальное использование памяти (%)
 }
 
 # Селекторы для парсинга Betboom
