@@ -8,7 +8,7 @@ import logging
 from datetime import datetime
 from typing import List
 
-from browser_controller import BrowserController
+from http_controller_demo import HTTPControllerDemo
 from fuzzy_matcher import FuzzyMatcher
 from report_generator import ReportGenerator
 from analyzers.football_analyzer import FootballAnalyzer
@@ -34,7 +34,7 @@ class LiveBettingAnalyzer:
     """Основной класс для анализа live-ставок"""
     
     def __init__(self):
-        self.browser = BrowserController()
+        self.browser = HTTPControllerDemo()
         self.fuzzy_matcher = FuzzyMatcher(threshold=ANALYSIS_SETTINGS['fuzzy_match_threshold'])
         self.report_generator = ReportGenerator()
         

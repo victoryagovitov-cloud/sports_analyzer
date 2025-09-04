@@ -4,7 +4,7 @@
 
 from typing import List, Dict, Optional
 from dataclasses import dataclass
-from browser_controller import BrowserController, MatchData
+from http_controller_demo import HTTPControllerDemo, MatchData
 from fuzzy_matcher import FuzzyMatcher
 from config import BETBOOM_URLS, SCORES24_URLS, ANALYSIS_SETTINGS
 
@@ -23,7 +23,7 @@ class TableTennisRecommendation:
 class TableTennisAnalyzer:
     """Анализатор матчей настольного тенниса"""
     
-    def __init__(self, browser_controller: BrowserController, fuzzy_matcher: FuzzyMatcher):
+    def __init__(self, browser_controller: HTTPControllerDemo, fuzzy_matcher: FuzzyMatcher):
         self.browser = browser_controller
         self.fuzzy_matcher = fuzzy_matcher
         self.threshold = ANALYSIS_SETTINGS['favorite_probability_threshold']

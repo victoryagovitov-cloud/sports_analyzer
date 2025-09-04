@@ -2,14 +2,30 @@
 Конфигурация для анализа live-ставок
 """
 
-# URL-адреса сайтов
-BETBOOM_URLS = {
-    'football': 'https://betboom.ru/sport/football?type=live',
-    'tennis': 'https://betboom.ru/sport/tennis?type=live',
-    'table_tennis': 'https://betboom.ru/sport/table-tennis?type=live',
-    'handball': 'https://betboom.ru/sport/handball?type=live'
+# URL-адреса сайтов для HTTP-запросов
+HTTP_URLS = {
+    'winline': {
+        'football': 'https://winline.ru/now/football/',
+        'tennis': 'https://winline.ru/now/tennis/',
+        'table_tennis': 'https://winline.ru/now/table-tennis/',
+        'handball': 'https://winline.ru/now/handball/'
+    },
+    'betboom': {
+        'football': 'https://betboom.ru/sport/football?type=live',
+        'tennis': 'https://betboom.ru/sport/tennis?type=live',
+        'table_tennis': 'https://betboom.ru/sport/table-tennis?type=live',
+        'handball': 'https://betboom.ru/sport/handball?type=live'
+    },
+    'baltbet': {
+        'football': 'https://baltbet.ru/live/football',
+        'tennis': 'https://baltbet.ru/live/tennis',
+        'table_tennis': 'https://baltbet.ru/live/table-tennis',
+        'handball': 'https://baltbet.ru/live/handball'
+    }
 }
 
+# Для обратной совместимости
+BETBOOM_URLS = HTTP_URLS['betboom']
 SCORES24_URLS = {
     'football': 'https://scores24.live/ru/soccer?matchesFilter=live',
     'tennis': 'https://scores24.live/ru/tennis?matchesFilter=live',
