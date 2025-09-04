@@ -37,6 +37,9 @@ class AIAnalyzer:
                 self.logger.error(f"Ошибка AI-анализа для матча {match.team1} - {match.team2}: {e}")
                 continue
                 
+        # Ограничиваем количество рекомендаций (максимум 5 на вид спорта)
+        recommendations = sorted(recommendations, key=lambda x: x.probability, reverse=True)[:5]
+        
         self.logger.info(f"AI сгенерировал {len(recommendations)} рекомендаций для {sport_type}")
         return recommendations
     
@@ -145,26 +148,46 @@ class AIAnalyzer:
         """Анализ счета в теннисе"""
         if not score:
             return {'sets_lead': 0, 'games_lead': 0, 'leader': None}
+        
+        try:
+            # Проверяем формат "1:1" (счет по сетам)
+            if ':' in score and not any('-' in s for s in score.split()):
+                sets = score.strip().split(':')
+                if len(sets) == 2:
+                    home_sets = int(sets[0])
+                    away_sets = int(sets[1])
+                    sets_lead = abs(home_sets - away_sets)
+                    leader = 'home' if home_sets > away_sets else 'away' if away_sets > home_sets else None
+                    
+                    return {
+                        'sets_lead': sets_lead,
+                        'games_lead': 0,  # Не анализируем геймы для формата "1:1"
+                        'leader': leader,
+                        'raw_score': score
+                    }
             
-        # Простой анализ счета тенниса
-        sets = score.split(' ')
-        sets_lead = 0
-        games_lead = 0
-        leader = None
-        
-        if len(sets) >= 1:
-            first_set = sets[0]
-            if '-' in first_set:
-                home_games, away_games = map(int, first_set.split('-'))
-                games_lead = abs(home_games - away_games)
-                leader = 'home' if home_games > away_games else 'away' if away_games > home_games else None
-        
-        return {
-            'sets_lead': sets_lead,
-            'games_lead': games_lead,
-            'leader': leader,
-            'raw_score': score
-        }
+            # Обычный формат "6-4 6-2"
+            sets = score.split(' ')
+            sets_lead = 0
+            games_lead = 0
+            leader = None
+            
+            if len(sets) >= 1:
+                first_set = sets[0]
+                if '-' in first_set:
+                    home_games, away_games = map(int, first_set.split('-'))
+                    games_lead = abs(home_games - away_games)
+                    leader = 'home' if home_games > away_games else 'away' if away_games > home_games else None
+            
+            return {
+                'sets_lead': sets_lead,
+                'games_lead': games_lead,
+                'leader': leader,
+                'raw_score': score
+            }
+        except Exception as e:
+            logger.warning(f"Ошибка анализа счета тенниса '{score}': {e}")
+            return {'sets_lead': 0, 'games_lead': 0, 'leader': None, 'raw_score': score}
     
     def _analyze_table_tennis_score(self, score: str) -> Dict[str, Any]:
         """Анализ счета в настольном теннисе"""
@@ -529,41 +552,57 @@ class AIAnalyzer:
         leader = score_analysis.get('leader')
         current_set = set_analysis.get('current_set', 1)
         
+        # Отладочная информация
+        logger.debug(f"Теннис анализ: {context['team1']} vs {context['team2']}, счет: {context['score']}, лидер: {leader}, преимущество в геймах: {games_lead}, сетов: {sets_won}")
+        
         # AI-анализ тенниса
         base_confidence = 0.3
         confidence = 0.0
         
+        # Базовый бонус за любое преимущество
+        if leader:
+            confidence = base_confidence + 0.2  # Увеличиваем базовый бонус
+        
         # Фактор 1: Преимущество по сетам (самый важный)
         sets_advantage = abs(sets_won['home'] - sets_won['away'])
         if sets_advantage >= 1:
-            confidence = base_confidence + 0.3 + (sets_advantage * 0.1)
+            confidence = base_confidence + 0.4 + (sets_advantage * 0.15)
             
             # Бонус за доминирование
             if sets_advantage >= 2:
-                confidence += 0.15
+                confidence += 0.2
         
         # Фактор 2: Большое преимущество в геймах текущего сета
-        elif games_lead >= 3:
-            confidence = base_confidence + 0.25 + (games_lead * 0.04)
+        elif games_lead >= 2:  # Снижен порог
+            confidence = base_confidence + 0.2 + (games_lead * 0.05)
             
             # Дополнительный бонус за очень большое преимущество
-            if games_lead >= 5:
+            if games_lead >= 4:
+                confidence += 0.15
+            elif games_lead >= 3:
                 confidence += 0.1
         
-        # Фактор 3: Среднее преимущество в геймах
-        elif games_lead >= 2:
-            confidence = base_confidence + 0.15 + (games_lead * 0.03)
+        # Фактор 3: Небольшое преимущество в геймах
+        elif games_lead >= 1:
+            confidence = base_confidence + 0.1 + (games_lead * 0.04)
         
         # Фактор 4: Качество турнира (определяем по названиям игроков)
         tournament_factor = self._analyze_tennis_tournament_quality(context)
         confidence += tournament_factor
         
+        # Фактор 5: Бонус за известных игроков
+        player1 = context.get('team1', '').lower()
+        player2 = context.get('team2', '').lower()
+        known_players = ['djokovic', 'nadal', 'federer', 'murray', 'medvedev', 'tsitsipas', 'zverev', 'rublev', 'sinner', 'alcaraz']
+        if any(player in player1 or player in player2 for player in known_players):
+            confidence += 0.1
+        
         # Фактор 5: Стадия матча (чем больше сетов сыграно, тем стабильнее)
         if current_set >= 2:  # Второй сет и далее
             confidence += 0.05
         
-        # Минимальный порог для рекомендации (снижен)
-        min_confidence = 0.6
+        # Минимальный порог для рекомендации (оптимизированный)
+        min_confidence = 0.4
         
         if confidence > min_confidence and leader:
             recommendation_type = 'win'
@@ -644,15 +683,15 @@ class AIAnalyzer:
         minute_analysis = context.get('minute_analysis', {})
         total_analysis = context.get('total_analysis', {})
         
-        # Анализ прямых побед (снижен порог)
-        if not score_analysis.get('is_draw') and score_analysis.get('advantage', 0) >= 3:
+        # Анализ прямых побед (значительно снижен порог)
+        if not score_analysis.get('is_draw') and score_analysis.get('advantage', 0) >= 2:
             leader = score_analysis.get('leader')
             advantage = score_analysis.get('advantage', 0)
             minute = minute_analysis.get('minute', 0)
             
             confidence = min(0.9, 0.3 + (advantage * 0.08) + (minute * 0.003))
             
-            if confidence > 0.6:  # Снижен порог
+            if confidence > 0.45:  # Значительно снижен порог
                 recommendation_type = 'win'
                 team_name = self._translate_team_name(context['team1'] if leader == 'home' else context['team2'])
                 recommendation_value = 'П1' if leader == 'home' else 'П2'
@@ -677,7 +716,7 @@ class AIAnalyzer:
             predicted_total = total_analysis.get('predicted_total', 0)
             
             if tempo in ['fast', 'slow']:
-                confidence = 0.75  # Снижен порог
+                confidence = 0.6  # Значительно снижен порог
                 recommendation_type = 'total'
                 
                 if tempo == 'fast':
