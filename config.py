@@ -21,6 +21,12 @@ HTTP_URLS = {
         'tennis': 'https://baltbet.ru/live/tennis',
         'table_tennis': 'https://baltbet.ru/live/table-tennis',
         'handball': 'https://baltbet.ru/live/handball'
+    },
+    'betzona': {
+        'football': 'https://betzona.ru/live-futbol.html',
+        'tennis': 'https://betzona.ru/live-tennis.html',
+        'table_tennis': 'https://betzona.ru/live-tennis.html',
+        'handball': 'https://betzona.ru/live-gandball.html'
     }
 }
 
