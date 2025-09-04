@@ -18,6 +18,7 @@ from enhanced_analyzers import (
 from simple_report_generator import SimpleReportGenerator
 from ai_analyzer import AIAnalyzer
 from ai_telegram_generator import AITelegramGenerator
+from telegram_integration import TelegramIntegration
 
 # Настройка логирования
 logging.basicConfig(
@@ -42,6 +43,7 @@ class EnhancedLiveSystem:
         self.report_generator = SimpleReportGenerator()
         self.ai_analyzer = AIAnalyzer()
         self.ai_telegram_generator = AITelegramGenerator()
+        self.telegram_integration = TelegramIntegration()
         
     def analyze_sport(self, sport_type: str) -> List[MatchData]:
         """AI-анализ матчей для конкретного вида спорта"""
@@ -109,10 +111,21 @@ class EnhancedLiveSystem:
             logger.info(f"HTML отчет сохранен в файл: {html_filename}")
             logger.info(f"AI Telegram отчет сохранен в файл: {telegram_filename}")
             
+            # Отправляем в Telegram канал
+            logger.info("Отправка AI-рекомендаций в Telegram канал...")
+            telegram_success = self.telegram_integration.send_ai_recommendations(all_recommendations)
+            
+            if telegram_success:
+                logger.info("✅ AI-рекомендации успешно отправлены в Telegram канал")
+            else:
+                logger.error("❌ Не удалось отправить рекомендации в Telegram канал")
+            
             # Выводим краткую статистику
             self.print_summary(all_recommendations)
         else:
             logger.info("Нет рекомендаций для отчета")
+            # Отправляем сообщение об отсутствии рекомендаций в Telegram
+            self.telegram_integration.send_no_recommendations_message()
         
         end_time = datetime.now()
         duration = (end_time - start_time).total_seconds()
@@ -156,6 +169,10 @@ class EnhancedLiveSystem:
         """Запуск непрерывного анализа"""
         logger.info("Запуск непрерывного анализа live-ставок...")
         logger.info("Анализ будет выполняться каждые 50 минут")
+        
+        # Отправляем сообщение о запуске в Telegram
+        logger.info("Отправка сообщения о запуске в Telegram канал...")
+        self.telegram_integration.send_startup_message()
         
         # Планируем выполнение каждые 50 минут
         schedule.every(50).minutes.do(self.run_analysis_cycle)
