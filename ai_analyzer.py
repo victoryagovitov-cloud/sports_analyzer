@@ -373,9 +373,14 @@ class AIAnalyzer:
                 recommendation_type = 'win'
                 recommendation_value = 'П1' if leader == 'home' else 'П2'
                 
+                # Переводим названия команд
+                team1_rus = self._translate_team_name(context['team1'])
+                team2_rus = self._translate_team_name(context['team2'])
+                leading_team = team1_rus if leader == 'home' else team2_rus
+                
                 # Умное обоснование
                 reasoning_parts = []
-                reasoning_parts.append(f"Команда {context['team1'] if leader == 'home' else context['team2']} ведет {context['score']}")
+                reasoning_parts.append(f"Команда {leading_team} ведет {context['score']}")
                 
                 if minute > 0:
                     reasoning_parts.append(f"на {minute} минуте")
@@ -443,6 +448,76 @@ class AIAnalyzer:
                 return 0.05  # Небольшой бонус за среднюю лигу
         
         return 0.0  # Нет бонуса
+    
+    def _translate_player_name(self, name: str) -> str:
+        """Переводит имя игрока на русский язык"""
+        translations = {
+            'djokovic': 'Новак Джокович',
+            'nadal': 'Рафаэль Надаль', 
+            'federer': 'Роджер Федерер',
+            'murray': 'Энди Мюррей',
+            'medvedev': 'Даниил Медведев',
+            'tsitsipas': 'Стефанос Циципас',
+            'zverev': 'Александр Зверев',
+            'rublev': 'Андрей Рублев',
+            'sinner': 'Янник Синнер',
+            'alcaraz': 'Карлос Алькарас',
+            'serena': 'Серена Уильямс',
+            'venus': 'Винус Уильямс',
+            'sharapova': 'Мария Шарапова',
+            'azarenka': 'Виктория Азаренко',
+            'halep': 'Симона Халеп',
+            'kerber': 'Анжелика Кербер',
+            'osaka': 'Наоми Осака',
+            'swiatek': 'Ига Свёнтек',
+            'sabalenka': 'Арина Соболенко',
+            'gauff': 'Кори Гауф'
+        }
+        
+        name_lower = name.lower()
+        for eng_name, rus_name in translations.items():
+            if eng_name in name_lower:
+                return rus_name
+        return name  # Возвращаем оригинальное имя, если перевод не найден
+    
+    def _translate_team_name(self, name: str) -> str:
+        """Переводит название команды на русский язык"""
+        translations = {
+            'manchester city': 'Манчестер Сити',
+            'manchester united': 'Манчестер Юнайтед',
+            'liverpool': 'Ливерпуль',
+            'chelsea': 'Челси',
+            'arsenal': 'Арсенал',
+            'tottenham': 'Тоттенхэм',
+            'real madrid': 'Реал Мадрид',
+            'barcelona': 'Барселона',
+            'atletico madrid': 'Атлетико Мадрид',
+            'bayern munich': 'Бавария',
+            'borussia dortmund': 'Боруссия Дортмунд',
+            'juventus': 'Ювентус',
+            'milan': 'Милан',
+            'inter': 'Интер',
+            'napoli': 'Наполи',
+            'psg': 'ПСЖ',
+            'monaco': 'Монако',
+            'lyon': 'Лион',
+            'marseille': 'Марсель',
+            'norway': 'Норвегия',
+            'denmark': 'Дания',
+            'germany': 'Германия',
+            'france': 'Франция',
+            'spain': 'Испания',
+            'italy': 'Италия',
+            'england': 'Англия',
+            'brazil': 'Бразилия',
+            'argentina': 'Аргентина'
+        }
+        
+        name_lower = name.lower()
+        for eng_name, rus_name in translations.items():
+            if eng_name in name_lower:
+                return rus_name
+        return name  # Возвращаем оригинальное название, если перевод не найден
     
     def _analyze_tennis_heuristic(self, context: Dict[str, Any]) -> Dict[str, Any]:
         """Улучшенный эвристический анализ тенниса с AI-логикой"""
@@ -564,23 +639,24 @@ class AIAnalyzer:
         return self._analyze_tennis_heuristic(context)  # Аналогично теннису
     
     def _analyze_handball_heuristic(self, context: Dict[str, Any]) -> Dict[str, Any]:
-        """Эвристический анализ гандбола"""
+        """Улучшенный эвристический анализ гандбола"""
         score_analysis = context.get('score_analysis', {})
         minute_analysis = context.get('minute_analysis', {})
         total_analysis = context.get('total_analysis', {})
         
-        # Анализ прямых побед
-        if not score_analysis.get('is_draw') and score_analysis.get('advantage', 0) >= 5:
+        # Анализ прямых побед (снижен порог)
+        if not score_analysis.get('is_draw') and score_analysis.get('advantage', 0) >= 3:
             leader = score_analysis.get('leader')
             advantage = score_analysis.get('advantage', 0)
             minute = minute_analysis.get('minute', 0)
             
-            confidence = min(0.9, 0.4 + (advantage * 0.05) + (minute * 0.002))
+            confidence = min(0.9, 0.3 + (advantage * 0.08) + (minute * 0.003))
             
-            if confidence > 0.7:
+            if confidence > 0.6:  # Снижен порог
                 recommendation_type = 'win'
+                team_name = self._translate_team_name(context['team1'] if leader == 'home' else context['team2'])
                 recommendation_value = 'П1' if leader == 'home' else 'П2'
-                reasoning = f"Команда {context['team1'] if leader == 'home' else context['team2']} ведет {context['score']} с преимуществом {advantage} голов"
+                reasoning = f"Команда {team_name} ведет {context['score']} с преимуществом {advantage} голов"
                 
                 return {
                     'confidence': confidence,
@@ -591,25 +667,25 @@ class AIAnalyzer:
                     },
                     'reasoning': reasoning,
                     'probability': confidence * 100,
-                    'coefficient': 1.4 + (1 - confidence) * 0.6
+                    'coefficient': 1.3 + (1 - confidence) * 0.7
                 }
         
-        # Анализ тоталов (только во втором тайме)
+        # Анализ тоталов (расширен диапазон)
         minute = minute_analysis.get('minute', 0)
-        if 10 <= minute <= 45 and total_analysis.get('predicted_total', 0) > 0:
+        if 5 <= minute <= 50 and total_analysis.get('predicted_total', 0) > 0:
             tempo = total_analysis.get('tempo', 'unknown')
             predicted_total = total_analysis.get('predicted_total', 0)
             
             if tempo in ['fast', 'slow']:
-                confidence = 0.8
+                confidence = 0.75  # Снижен порог
                 recommendation_type = 'total'
                 
                 if tempo == 'fast':
                     recommendation_value = f"ТБ {total_analysis.get('total_over', 0)}"
-                    reasoning = f"Быстрый темп игры ({total_analysis.get('goals_per_minute', 0):.1f} голов/мин), прогнозный тотал: {predicted_total}"
+                    reasoning = f"Высокий темп игры ({total_analysis.get('goals_per_minute', 0):.1f} голов/мин), прогнозный тотал: {predicted_total}"
                 else:  # slow
                     recommendation_value = f"ТМ {total_analysis.get('total_under', 0)}"
-                    reasoning = f"Медленный темп игры ({total_analysis.get('goals_per_minute', 0):.1f} голов/мин), прогнозный тотал: {predicted_total}"
+                    reasoning = f"Низкий темп игры ({total_analysis.get('goals_per_minute', 0):.1f} голов/мин), прогнозный тотал: {predicted_total}"
                 
                 return {
                     'confidence': confidence,
@@ -620,7 +696,7 @@ class AIAnalyzer:
                     },
                     'reasoning': reasoning,
                     'probability': confidence * 100,
-                    'coefficient': 1.6
+                    'coefficient': 1.5
                 }
         
         return {'confidence': 0.0, 'recommendation': None, 'reasoning': '', 'probability': 0.0, 'coefficient': 1.0}
