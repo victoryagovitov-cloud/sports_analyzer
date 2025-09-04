@@ -54,7 +54,12 @@ ANALYSIS_SETTINGS = {
     'max_retries': 3,  # Максимальное количество повторных попыток
     'retry_delay_seconds': 5,  # Задержка между повторными попытками
     'watchdog_interval_seconds': 60,  # Интервал проверки watchdog (1 минута)
-    'max_memory_usage_percent': 80  # Максимальное использование памяти (%)
+    'max_memory_usage_percent': 80,  # Максимальное использование памяти (%)
+    # OpenAI настройки (API ключ берется из переменной окружения OPENAI_API_KEY)
+    'use_openai_gpt': True,  # Использовать OpenAI GPT вместо эвристического анализа
+    'openai_model': 'gpt-4o-mini',  # Модель GPT для использования
+    'openai_max_tokens': 2000,  # Максимальное количество токенов
+    'openai_temperature': 0.1  # Температура для более консистентных результатов
 }
 
 # Селекторы для парсинга Betboom
