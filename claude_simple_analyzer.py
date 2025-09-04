@@ -122,19 +122,103 @@ class ClaudeSimpleAnalyzer:
         return recommendations
     
     def _should_recommend_match(self, match: MatchData) -> bool:
-        """Простая эвристика для определения, стоит ли рекомендовать матч"""
-        # Анализируем счет
-        if ':' in match.score:
-            try:
-                home_score, away_score = map(int, match.score.split(':'))
-                difference = abs(home_score - away_score)
-                
-                # Рекомендуем если есть преимущество
-                if difference >= 1:
-                    return True
-            except:
-                pass
+        """Проверяет, соответствует ли матч правилам системы для рекомендации"""
         
+        if match.sport_type == 'football':
+            # Футбол: не ничейный счет
+            if ':' in match.score:
+                try:
+                    home_score, away_score = map(int, match.score.split(':'))
+                    return home_score != away_score  # Не ничья
+                except:
+                    pass
+                    
+        elif match.sport_type == 'tennis':
+            # Теннис: счет 1-0 по сетам ИЛИ разрыв ≥4 геймов в первом сете
+            return self._is_tennis_advantage(match.score)
+            
+        elif match.sport_type == 'table_tennis':
+            # Настольный теннис: счет 1-0 или 2-0 по сетам
+            return self._is_table_tennis_advantage(match.score)
+            
+        elif match.sport_type == 'handball':
+            # Гандбол: разрыв ≥5 голов
+            if ':' in match.score:
+                try:
+                    home_score, away_score = map(int, match.score.split(':'))
+                    difference = abs(home_score - away_score)
+                    return difference >= 5
+                except:
+                    pass
+        
+        return False
+    
+    def _is_tennis_advantage(self, score: str) -> bool:
+        """Проверяет преимущество в теннисе: 1-0 по сетам ИЛИ ≥4 геймов в первом сете"""
+        if not score:
+            return False
+            
+        try:
+            # Проверяем формат "1:1" (счет по сетам)
+            if ':' in score and not any('-' in s for s in score.split()):
+                sets = score.strip().split(':')
+                if len(sets) == 2:
+                    home_sets = int(sets[0])
+                    away_sets = int(sets[1])
+                    # Преимущество 1-0 по сетам
+                    return abs(home_sets - away_sets) == 1 and (home_sets == 1 or away_sets == 1)
+            
+            # Обычный формат "6-4 3-2" - проверяем геймы в первом сете
+            sets = score.split(' ')
+            if len(sets) >= 1:
+                first_set = sets[0]
+                if '-' in first_set:
+                    home_games, away_games = map(int, first_set.split('-'))
+                    games_lead = abs(home_games - away_games)
+                    # Разрыв ≥4 геймов в первом сете
+                    return games_lead >= 4
+                    
+        except Exception as e:
+            self.logger.warning(f"Ошибка анализа счета тенниса '{score}': {e}")
+            
+        return False
+    
+    def _is_table_tennis_advantage(self, score: str) -> bool:
+        """Проверяет преимущество в настольном теннисе: 1-0 или 2-0 по сетам"""
+        if not score:
+            return False
+            
+        try:
+            # Проверяем формат "1:1" (счет по сетам)
+            if ':' in score and not any('-' in s for s in score.split()):
+                sets = score.strip().split(':')
+                if len(sets) == 2:
+                    home_sets = int(sets[0])
+                    away_sets = int(sets[1])
+                    # Преимущество 1-0 или 2-0 по сетам
+                    return (home_sets == 1 and away_sets == 0) or (home_sets == 2 and away_sets == 0) or \
+                           (away_sets == 1 and home_sets == 0) or (away_sets == 2 and home_sets == 0)
+            
+            # Обычный формат "11-9 11-7" - считаем выигранные сеты
+            sets = score.split(' ')
+            home_sets_won = 0
+            away_sets_won = 0
+            
+            for set_score in sets:
+                if '-' in set_score:
+                    home_games, away_games = map(int, set_score.split('-'))
+                    if home_games > away_games:
+                        home_sets_won += 1
+                    elif away_games > home_games:
+                        away_sets_won += 1
+            
+            # Преимущество 1-0 или 2-0 по сетам
+            return (home_sets_won == 1 and away_sets_won == 0) or (home_sets_won == 2 and away_sets_won == 0) or \
+                   (away_sets_won == 1 and home_sets_won == 0) or (away_sets_won == 2 and home_sets_won == 0)
+                   
+        except Exception as e:
+            self.logger.warning(f"Ошибка анализа счета настольного тенниса '{score}': {e}")
+            
         return False
     
     def _create_recommendation(self, match: MatchData) -> MatchData:

@@ -17,7 +17,7 @@ from enhanced_analyzers import (
 )
 from simple_report_generator import SimpleReportGenerator
 from ai_analyzer import AIAnalyzer
-from claude_simple_analyzer import ClaudeSimpleAnalyzer
+from claude_cursor_integrated import ClaudeCursorIntegrated
 from ai_telegram_generator import AITelegramGenerator
 from telegram_integration import TelegramIntegration
 
@@ -43,7 +43,7 @@ class EnhancedLiveSystem:
         }
         self.report_generator = SimpleReportGenerator()
         self.ai_analyzer = AIAnalyzer()
-        self.claude_analyzer = ClaudeSimpleAnalyzer()
+        self.claude_analyzer = ClaudeCursorIntegrated()
         self.ai_telegram_generator = AITelegramGenerator()
         self.telegram_integration = TelegramIntegration()
         
