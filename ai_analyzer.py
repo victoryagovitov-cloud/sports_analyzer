@@ -455,52 +455,53 @@ class AIAnalyzer:
         current_set = set_analysis.get('current_set', 1)
         
         # AI-анализ тенниса
-        base_confidence = 0.2
+        base_confidence = 0.3
         confidence = 0.0
         
         # Фактор 1: Преимущество по сетам (самый важный)
         sets_advantage = abs(sets_won['home'] - sets_won['away'])
         if sets_advantage >= 1:
-            confidence = base_confidence + 0.4 + (sets_advantage * 0.15)
+            confidence = base_confidence + 0.3 + (sets_advantage * 0.1)
             
             # Бонус за доминирование
             if sets_advantage >= 2:
-                confidence += 0.2
+                confidence += 0.15
         
         # Фактор 2: Большое преимущество в геймах текущего сета
-        elif games_lead >= 4:
-            confidence = base_confidence + 0.3 + (games_lead * 0.03)
+        elif games_lead >= 3:
+            confidence = base_confidence + 0.25 + (games_lead * 0.04)
             
             # Дополнительный бонус за очень большое преимущество
-            if games_lead >= 6:
-                confidence += 0.15
+            if games_lead >= 5:
+                confidence += 0.1
         
         # Фактор 3: Среднее преимущество в геймах
         elif games_lead >= 2:
-            confidence = base_confidence + 0.1 + (games_lead * 0.02)
+            confidence = base_confidence + 0.15 + (games_lead * 0.03)
         
         # Фактор 4: Качество турнира (определяем по названиям игроков)
         tournament_factor = self._analyze_tennis_tournament_quality(context)
         confidence += tournament_factor
         
         # Фактор 5: Стадия матча (чем больше сетов сыграно, тем стабильнее)
-        if current_set >= 3:  # Третий сет и далее
-            confidence += 0.1
+        if current_set >= 2:  # Второй сет и далее
+            confidence += 0.05
         
-        # Минимальный порог для рекомендации
-        min_confidence = 0.7
+        # Минимальный порог для рекомендации (снижен)
+        min_confidence = 0.6
         
         if confidence > min_confidence and leader:
             recommendation_type = 'win'
-            recommendation_value = f"Победа {context['team1'] if leader == 'home' else context['team2']}"
+            player_name = self._translate_player_name(context['team1'] if leader == 'home' else context['team2'])
+            recommendation_value = f"Победа {player_name}"
             
             # Умное обоснование
             reasoning_parts = []
-            reasoning_parts.append(f"Игрок {context['team1'] if leader == 'home' else context['team2']} ведет {context['score']}")
+            reasoning_parts.append(f"Игрок {player_name} ведет {context['score']}")
             
             if sets_advantage >= 1:
                 reasoning_parts.append(f"по сетам ({sets_advantage} сет впереди)")
-            elif games_lead >= 4:
+            elif games_lead >= 3:
                 reasoning_parts.append(f"с большим преимуществом в геймах ({games_lead})")
             elif games_lead >= 2:
                 reasoning_parts.append(f"с преимуществом в геймах ({games_lead})")
@@ -511,7 +512,7 @@ class AIAnalyzer:
             reasoning = ", ".join(reasoning_parts) + "."
             
             # Динамический коэффициент
-            coefficient = 1.1 + (1 - confidence) * 0.9
+            coefficient = 1.2 + (1 - confidence) * 0.8
             
             return {
                 'confidence': confidence,
