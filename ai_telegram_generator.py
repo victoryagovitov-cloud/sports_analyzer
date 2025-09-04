@@ -67,7 +67,7 @@ class AITelegramGenerator:
         }
         
         for rec in recommendations:
-            sport_type = rec.sport_type
+            sport_type = getattr(rec, 'sport_type', getattr(rec, 'sport', 'unknown'))
             if sport_type in sport_groups:
                 sport_groups[sport_type].append(rec)
             else:

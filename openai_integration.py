@@ -21,6 +21,11 @@ class OpenAIAnalyzer:
         self.logger = logging.getLogger(self.__class__.__name__)
         self.model = "gpt-4o-mini"  # Более экономичная модель
         
+        # Rate limiting настройки
+        self.last_request_time = 0
+        self.min_request_interval = 1.5  # 1.5 секунды между запросами
+        self.max_retries = 3
+        
     def analyze_matches_with_gpt(self, matches: List[MatchData], sport_type: str) -> List[MatchData]:
         """
         Анализирует матчи с помощью OpenAI GPT
@@ -30,9 +35,17 @@ class OpenAIAnalyzer:
         
         self.logger.info(f"GPT анализ {len(matches)} матчей для {sport_type}")
         
+        # Предфильтрация: оставляем только потенциально подходящие матчи
+        filtered_matches = self._prefilter_matches(matches, sport_type)
+        self.logger.info(f"После предфильтрации: {len(filtered_matches)} подходящих матчей")
+        
+        if not filtered_matches:
+            self.logger.info("Нет матчей, прошедших предфильтрацию")
+            return []
+        
         # Ограничиваем количество матчей для экономии токенов
-        max_matches = 5
-        matches_to_analyze = matches[:max_matches]
+        max_matches = 3
+        matches_to_analyze = filtered_matches[:max_matches]
         
         # Создаем детальный промпт
         prompt = self._create_detailed_analysis_prompt(matches_to_analyze, sport_type)
@@ -42,7 +55,7 @@ class OpenAIAnalyzer:
             gpt_response = self._call_openai_gpt(prompt)
             
             # Обрабатываем ответ GPT
-            recommendations = self._process_gpt_response(gpt_response, matches_to_analyze)
+            recommendations = self._process_gpt_response(gpt_response, matches_to_analyze, sport_type)
             
             self.logger.info(f"GPT сгенерировал {len(recommendations)} рекомендаций для {sport_type}")
             return recommendations
@@ -70,7 +83,7 @@ class OpenAIAnalyzer:
             1. Найди матчи, где одна команда ведет с разрывом ≥1 гол (1:0, 2:1, 3:2, etc.)
             2. ОБЯЗАТЕЛЬНО определи, является ли ведущая команда ЯВНЫМ ФАВОРИТОМ
             3. Время матча должно быть ≥45 минут (минимум второй тайм)
-            4. Рекомендуй ТОЛЬКО если вероятность победы фаворита >85%
+            4. Рекомендуй если вероятность победы фаворита >80% (можно до 85% для особо надежных)
             
             КРИТЕРИИ ЯВНОГО ФАВОРИТА:
             - Позиция в таблице выше на ≥3 места ИЛИ разница в очках ≥10
@@ -132,7 +145,7 @@ class OpenAIAnalyzer:
         - Психологические и тактические факторы
         - Статистические показатели
         
-        ВАЖНО: Будь очень строгим в отборе. Лучше не дать рекомендацию, чем дать сомнительную.
+        ВАЖНО: Будь разумно строгим в отборе. Если матч близок к критериям (например, 78% вместо 80%), рассмотри его как потенциальную рекомендацию. Лучше дать честную оценку 78%, чем вообще не дать рекомендацию.
         
         Верни результат СТРОГО в JSON формате:
         [
@@ -151,33 +164,125 @@ class OpenAIAnalyzer:
         
         return prompt
     
-    def _call_openai_gpt(self, prompt: str) -> str:
-        """Вызывает OpenAI GPT API"""
-        try:
-            response = self.client.chat.completions.create(
-                model=self.model,
-                messages=[
-                    {
-                        "role": "system", 
-                        "content": "Ты профессиональный аналитик спортивных ставок. Отвечай только в JSON формате."
-                    },
-                    {
-                        "role": "user", 
-                        "content": prompt
-                    }
-                ],
-                max_tokens=2000,
-                temperature=0.1,  # Низкая температура для более консистентных результатов
-                timeout=30
-            )
-            
-            return response.choices[0].message.content
-            
-        except Exception as e:
-            self.logger.error(f"Ошибка вызова OpenAI API: {e}")
-            raise e
+    def _prefilter_matches(self, matches: List[MatchData], sport_type: str) -> List[MatchData]:
+        """Предварительная фильтрация матчей для экономии токенов"""
+        filtered = []
+        
+        for match in matches:
+            if sport_type == 'football':
+                if self._is_football_match_worth_analyzing(match):
+                    filtered.append(match)
+            elif sport_type == 'tennis':
+                if self._is_tennis_match_worth_analyzing(match):
+                    filtered.append(match)
+            elif sport_type == 'handball':
+                if self._is_handball_match_worth_analyzing(match):
+                    filtered.append(match)
+            else:
+                filtered.append(match)  # Для остальных видов спорта анализируем все
+        
+        return filtered
     
-    def _process_gpt_response(self, gpt_response: str, original_matches: List[MatchData]) -> List[MatchData]:
+    def _is_football_match_worth_analyzing(self, match: MatchData) -> bool:
+        """Проверка, стоит ли анализировать футбольный матч"""
+        try:
+            if ':' not in match.score:
+                return False
+            
+            home_score, away_score = map(int, match.score.split(':'))
+            minute_str = getattr(match, 'minute', '0')
+            minute = int(minute_str.replace("'", "").replace("′", "")) if minute_str.replace("'", "").replace("′", "").isdigit() else 0
+            
+            # Базовые критерии
+            if home_score == away_score:  # Ничья
+                return False
+            if minute < 45:  # Слишком рано
+                return False
+            
+            # Проверяем разрыв в счете
+            goal_diff = abs(home_score - away_score)
+            if goal_diff >= 2:  # Большой разрыв - всегда анализируем
+                return True
+            if goal_diff == 1 and minute >= 60:  # Малый разрыв только в концовке
+                return True
+                
+            return False
+            
+        except Exception:
+            return False  # При ошибке не анализируем
+    
+    def _is_tennis_match_worth_analyzing(self, match: MatchData) -> bool:
+        """Проверка, стоит ли анализировать теннисный матч"""
+        try:
+            score = match.score
+            # Ищем преимущество по сетам (например, "1-0", "2-1")
+            if '-' in score and score.count('-') == 1:
+                sets1, sets2 = map(int, score.split('-'))
+                return sets1 != sets2  # Есть преимущество по сетам
+            return True  # Если формат неясен, анализируем
+        except Exception:
+            return True
+    
+    def _is_handball_match_worth_analyzing(self, match: MatchData) -> bool:
+        """Проверка, стоит ли анализировать гандбольный матч"""
+        try:
+            if ':' not in match.score:
+                return False
+            
+            home_score, away_score = map(int, match.score.split(':'))
+            goal_diff = abs(home_score - away_score)
+            
+            return goal_diff >= 3  # Анализируем только при разрыве ≥3 голов
+        except Exception:
+            return False
+    
+    def _call_openai_gpt(self, prompt: str) -> str:
+        """Вызывает OpenAI GPT API с rate limiting"""
+        import time
+        
+        # Соблюдаем rate limiting
+        time_since_last = time.time() - self.last_request_time
+        if time_since_last < self.min_request_interval:
+            sleep_time = self.min_request_interval - time_since_last
+            self.logger.info(f"⏳ Ожидание {sleep_time:.1f}с для соблюдения rate limit")
+            time.sleep(sleep_time)
+        
+        for attempt in range(self.max_retries):
+            try:
+                self.logger.info(f"📡 OpenAI запрос (попытка {attempt + 1}/{self.max_retries})")
+                
+                response = self.client.chat.completions.create(
+                    model=self.model,
+                    messages=[
+                        {
+                            "role": "system", 
+                            "content": "Ты профессиональный эксперт по спортивным ставкам с 15+ летним опытом. Анализируй строго, но не слишком придирчиво. Отвечай только в JSON формате."
+                        },
+                        {
+                            "role": "user", 
+                            "content": prompt
+                        }
+                    ],
+                    max_tokens=1500,  # Уменьшили для экономии
+                    temperature=0.2,  # Немного повысили для разнообразия
+                    timeout=30
+                )
+                
+                self.last_request_time = time.time()
+                self.logger.info("✅ OpenAI запрос выполнен успешно")
+                return response.choices[0].message.content
+                
+            except Exception as e:
+                self.logger.warning(f"⚠️  Попытка {attempt + 1} неудачна: {e}")
+                if attempt < self.max_retries - 1:
+                    sleep_time = (attempt + 1) * 2  # Экспоненциальная задержка
+                    self.logger.info(f"⏳ Ожидание {sleep_time}с перед повтором...")
+                    time.sleep(sleep_time)
+                else:
+                    self.logger.error(f"❌ Все {self.max_retries} попытки неудачны")
+                    raise e
+    
+    def _process_gpt_response(self, gpt_response: str, original_matches: List[MatchData], sport_type: str = 'football') -> List[MatchData]:
         """Обрабатывает ответ от GPT и создает рекомендации"""
         try:
             # Очищаем ответ от возможного мусора
@@ -199,7 +304,7 @@ class OpenAIAnalyzer:
                 
                 if original_match:
                     # Создаем рекомендацию на основе ответа GPT
-                    recommendation = self._create_recommendation_from_gpt(original_match, gpt_rec, 'football')
+                    recommendation = self._create_recommendation_from_gpt(original_match, gpt_rec, sport_type)
                     recommendations.append(recommendation)
             
             return recommendations
@@ -229,10 +334,10 @@ class OpenAIAnalyzer:
             team1=original_match.team1,
             team2=original_match.team2,
             score=original_match.score,
-            minute=original_match.minute,
-            league=original_match.league,
-            link=original_match.link,
-            source=original_match.source
+            minute=getattr(original_match, 'minute', ''),
+            league=getattr(original_match, 'league', ''),
+            link=getattr(original_match, 'link', ''),
+            source=getattr(original_match, 'source', '')
         )
         
         # Добавляем данные от GPT
@@ -293,14 +398,14 @@ class OpenAIAnalyzer:
                 
                 # Создаем рекомендацию
                 rec = MatchData(
-                    sport=match.sport,
+                    sport=getattr(match, 'sport', 'football'),
                     team1=match.team1,
                     team2=match.team2,
                     score=match.score,
-                    minute=match.minute,
-                    league=match.league,
-                    link=match.link,
-                    source=match.source
+                    minute=getattr(match, 'minute', ''),
+                    league=getattr(match, 'league', ''),
+                    link=getattr(match, 'link', ''),
+                    source=getattr(match, 'source', '')
                 )
                 
                 rec.probability = confidence * 100

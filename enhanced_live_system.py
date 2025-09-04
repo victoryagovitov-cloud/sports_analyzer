@@ -146,7 +146,7 @@ class EnhancedLiveSystem:
         # Группируем по видам спорта
         by_sport = {}
         for rec in recommendations:
-            sport = rec.sport_type
+            sport = getattr(rec, 'sport_type', getattr(rec, 'sport', 'unknown'))
             if sport not in by_sport:
                 by_sport[sport] = []
             by_sport[sport].append(rec)

@@ -20,7 +20,7 @@ class SimpleReportGenerator:
         # Группируем по видам спорта
         by_sport = {}
         for rec in recommendations:
-            sport = rec.sport_type
+            sport = getattr(rec, 'sport_type', getattr(rec, 'sport', 'unknown'))
             if sport not in by_sport:
                 by_sport[sport] = []
             by_sport[sport].append(rec)
@@ -72,11 +72,12 @@ class SimpleReportGenerator:
             'handball': '🤾'
         }
         
-        emoji = sport_emojis.get(rec.sport_type, '🏆')
+        sport_type = getattr(rec, 'sport_type', getattr(rec, 'sport', 'unknown'))
+        emoji = sport_emojis.get(sport_type, '🏆')
         
         # Форматируем в зависимости от типа рекомендации
         if rec.recommendation_type == 'win':
-            if rec.sport_type == 'football':
+            if sport_type == 'football':
                 return f"""{number}. <b>{emoji} {rec.team1} – {rec.team2}</b>
 🏟️ Счет: <b>{rec.score}</b> ({rec.minute}′)
 ✅ Ставка: <b>{rec.recommendation_value}</b>
@@ -84,7 +85,7 @@ class SimpleReportGenerator:
 📌 <i>{rec.justification}</i>
 
 """
-            elif rec.sport_type in ['tennis', 'table_tennis']:
+            elif sport_type in ['tennis', 'table_tennis']:
                 return f"""{number}. <b>{emoji} {rec.team1} – {rec.team2}</b>
 🎯 Счет: <b>{rec.score}</b>
 ✅ Ставка: <b>{rec.recommendation_value}</b>
@@ -92,7 +93,7 @@ class SimpleReportGenerator:
 📌 <i>{rec.justification}</i>
 
 """
-            elif rec.sport_type == 'handball':
+            elif sport_type == 'handball':
                 return f"""{number}. <b>{emoji} {rec.team1} – {rec.team2}</b>
 🏟️ Счет: <b>{rec.score}</b> ({rec.minute}′)
 ✅ Ставка: <b>{rec.recommendation_value}</b>
