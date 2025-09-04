@@ -16,6 +16,8 @@ from enhanced_analyzers import (
     EnhancedHandballAnalyzer
 )
 from simple_report_generator import SimpleReportGenerator
+from ai_analyzer import AIAnalyzer
+from ai_telegram_generator import AITelegramGenerator
 
 # Настройка логирования
 logging.basicConfig(
@@ -38,10 +40,12 @@ class EnhancedLiveSystem:
             'handball': EnhancedHandballAnalyzer()
         }
         self.report_generator = SimpleReportGenerator()
+        self.ai_analyzer = AIAnalyzer()
+        self.ai_telegram_generator = AITelegramGenerator()
         
     def analyze_sport(self, sport_type: str) -> List[MatchData]:
-        """Анализ матчей для конкретного вида спорта"""
-        logger.info(f"Начинаем анализ {sport_type}...")
+        """AI-анализ матчей для конкретного вида спорта"""
+        logger.info(f"Начинаем AI-анализ {sport_type}...")
         
         # Получаем live-матчи
         matches = self.controller.get_live_matches(sport_type)
@@ -51,24 +55,14 @@ class EnhancedLiveSystem:
             logger.info(f"Нет live-матчей для {sport_type}")
             return []
         
-        # Анализируем матчи
-        analyzer = self.analyzers.get(sport_type)
-        if not analyzer:
-            logger.error(f"Анализатор для {sport_type} не найден")
+        # AI-анализ всех матчей
+        try:
+            ai_recommendations = self.ai_analyzer.analyze_matches_with_ai(matches, sport_type)
+            logger.info(f"AI сгенерировал {len(ai_recommendations)} рекомендаций для {sport_type}")
+            return ai_recommendations
+        except Exception as e:
+            logger.error(f"Ошибка AI-анализа для {sport_type}: {e}")
             return []
-        
-        recommendations = []
-        for match in matches:
-            try:
-                # Анализируем матч
-                recommendation = analyzer.analyze_match(match)
-                if recommendation:
-                    recommendations.append(recommendation)
-            except Exception as e:
-                logger.error(f"Ошибка при анализе матча {match.team1} - {match.team2}: {e}")
-        
-        logger.info(f"Получено {len(recommendations)} рекомендаций для {sport_type}")
-        return recommendations
     
     def run_analysis_cycle(self):
         """Запуск одного цикла анализа"""
@@ -89,18 +83,31 @@ class EnhancedLiveSystem:
             except Exception as e:
                 logger.error(f"Ошибка при анализе {sport}: {e}")
         
-        # Генерируем отчет
+        # Генерируем AI-отчет
         if all_recommendations:
-            logger.info(f"Генерируем отчет для {len(all_recommendations)} рекомендаций...")
-            report = self.report_generator.generate_report(all_recommendations)
+            logger.info(f"Генерируем AI-отчет для {len(all_recommendations)} рекомендаций...")
             
-            # Сохраняем отчет в файл
+            # Генерируем обычный HTML отчет
+            html_report = self.report_generator.generate_report(all_recommendations)
+            
+            # Генерируем AI-отчет для Telegram
+            ai_telegram_report = self.ai_telegram_generator.generate_ai_telegram_report(all_recommendations)
+            
+            # Сохраняем отчеты в файлы
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            filename = f"live_analysis_report_{timestamp}.html"
-            with open(filename, 'w', encoding='utf-8') as f:
-                f.write(report)
             
-            logger.info(f"Отчет сохранен в файл: {filename}")
+            # HTML отчет
+            html_filename = f"live_analysis_report_{timestamp}.html"
+            with open(html_filename, 'w', encoding='utf-8') as f:
+                f.write(html_report)
+            
+            # AI Telegram отчет
+            telegram_filename = f"ai_telegram_report_{timestamp}.html"
+            with open(telegram_filename, 'w', encoding='utf-8') as f:
+                f.write(ai_telegram_report)
+            
+            logger.info(f"HTML отчет сохранен в файл: {html_filename}")
+            logger.info(f"AI Telegram отчет сохранен в файл: {telegram_filename}")
             
             # Выводим краткую статистику
             self.print_summary(all_recommendations)
