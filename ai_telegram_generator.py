@@ -1,5 +1,6 @@
 from typing import List
 from datetime import datetime
+from moscow_time import format_moscow_time_for_telegram
 from multi_source_controller import MatchData
 import logging
 
@@ -81,8 +82,7 @@ class AITelegramGenerator:
     
     def _create_final_report(self, sport_groups: dict) -> str:
         """Создает финальный AI-отчет"""
-        current_time = datetime.now()
-        time_str = current_time.strftime("%H:%M МСК, %d.%m.%Y")
+        time_str = format_moscow_time_for_telegram()
         
         # Заголовок отчета в соответствии с шаблоном
         report = f"🎯 <b>LIVE-ПРЕДЛОЖЕНИЯ НА</b> (<i>{time_str}</i>) 🎯\n"
@@ -149,8 +149,7 @@ class AITelegramGenerator:
     
     def _generate_empty_report(self) -> str:
         """Генерирует пустой отчет"""
-        current_time = datetime.now()
-        time_str = current_time.strftime("%H:%M МСК, %d.%m.%Y")
+        time_str = format_moscow_time_for_telegram()
         
         report = f"🎯 <b>LIVE-ПРЕДЛОЖЕНИЯ НА</b> (<i>{time_str}</i>) 🎯\n"
         report += "—————————————\n\n"

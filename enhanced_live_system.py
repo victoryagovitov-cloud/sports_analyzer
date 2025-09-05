@@ -9,6 +9,7 @@ import time
 from datetime import datetime
 from typing import List
 from multi_source_controller import MultiSourceController, MatchData
+from scores24_only_controller import scores24_only_controller
 from enhanced_analyzers import (
     EnhancedFootballAnalyzer,
     EnhancedTennisAnalyzer,
@@ -22,6 +23,7 @@ from ai_telegram_generator import AITelegramGenerator
 from telegram_integration import TelegramIntegration
 from system_watchdog import system_watchdog
 from enhanced_telegram_formatter import enhanced_formatter
+from prompt_telegram_formatter import prompt_telegram_formatter
 from totals_calculator import totals_calculator
 from moscow_time import filter_live_matches_by_time, log_moscow_time
 
@@ -55,8 +57,8 @@ class EnhancedLiveSystem:
         """AI-анализ матчей для конкретного вида спорта"""
         logger.info(f"Начинаем AI-анализ {sport_type}...")
         
-        # Получаем live-матчи
-        matches = self.controller.get_live_matches(sport_type)
+        # Получаем live-матчи ТОЛЬКО с scores24.live (по промпту)
+        matches = scores24_only_controller.get_live_matches(sport_type)
         logger.info(f"Найдено {len(matches)} live-матчей для {sport_type}")
         
         # Фильтруем завершившиеся матчи
@@ -137,8 +139,8 @@ class EnhancedLiveSystem:
             # Генерируем обычный HTML отчет
             html_report = self.report_generator.generate_report(all_recommendations)
             
-            # Генерируем улучшенный AI-отчет для Telegram (с московским временем и фильтрацией)
-            ai_telegram_report = enhanced_formatter.format_enhanced_report(all_recommendations)
+            # Генерируем отчет СТРОГО по шаблону промпта (с московским временем и фильтрацией)
+            ai_telegram_report = prompt_telegram_formatter.format_report_by_prompt(all_recommendations)
             
             # Сохраняем отчеты в файлы
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -158,9 +160,9 @@ class EnhancedLiveSystem:
             
             # Отправляем в Telegram канал
             logger.info("Отправка AI-рекомендаций в Telegram канал...")
-            # Используем улучшенный форматтер с московским временем и фильтрацией
-            enhanced_telegram_report = enhanced_formatter.format_enhanced_report(all_recommendations)
-            telegram_success = self.telegram_integration.send_formatted_report(enhanced_telegram_report)
+            # Используем форматтер СТРОГО по промпту
+            prompt_telegram_report = prompt_telegram_formatter.format_report_by_prompt(all_recommendations)
+            telegram_success = self.telegram_integration.send_formatted_report(prompt_telegram_report)
             
             if telegram_success:
                 logger.info("✅ AI-рекомендации успешно отправлены в Telegram канал")
