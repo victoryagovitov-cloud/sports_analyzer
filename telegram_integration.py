@@ -134,6 +134,23 @@ class TelegramIntegration:
         except Exception as e:
             self.logger.error(f"Ошибка при тестировании Telegram: {e}")
             return False
+    
+    def send_formatted_report(self, formatted_report: str) -> bool:
+        """Отправляет готовый отформатированный отчет в Telegram"""
+        try:
+            self.logger.info("Отправка отформатированного отчета в Telegram канал...")
+            success = self.telegram_manager.send_ai_report(formatted_report)
+            
+            if success:
+                self.logger.info("✅ Отформатированный отчет успешно отправлен")
+            else:
+                self.logger.error("❌ Не удалось отправить отформатированный отчет")
+                
+            return success
+            
+        except Exception as e:
+            self.logger.error(f"Ошибка отправки отформатированного отчета: {e}")
+            return False
 
 def test_telegram_integration():
     """Тестирует интеграцию с Telegram"""

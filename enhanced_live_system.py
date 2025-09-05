@@ -23,6 +23,7 @@ from telegram_integration import TelegramIntegration
 from system_watchdog import system_watchdog
 from enhanced_telegram_formatter import enhanced_formatter
 from totals_calculator import totals_calculator
+from moscow_time import filter_live_matches_by_time, log_moscow_time
 
 # Настройка логирования
 logging.basicConfig(
@@ -58,13 +59,19 @@ class EnhancedLiveSystem:
         matches = self.controller.get_live_matches(sport_type)
         logger.info(f"Найдено {len(matches)} live-матчей для {sport_type}")
         
-        if not matches:
-            logger.info(f"Нет live-матчей для {sport_type}")
+        # Фильтруем завершившиеся матчи
+        active_matches = filter_live_matches_by_time(matches, sport_type)
+        
+        if len(active_matches) < len(matches):
+            logger.info(f"📊 Исключено {len(matches) - len(active_matches)} завершившихся матчей для {sport_type}")
+        
+        if not active_matches:
+            logger.info(f"Нет активных live-матчей для {sport_type}")
             return []
         
         # AI-анализ всех матчей
         try:
-            ai_recommendations = self.claude_analyzer.analyze_matches_with_claude(matches, sport_type)
+            ai_recommendations = self.claude_analyzer.analyze_matches_with_claude(active_matches, sport_type)
             logger.info(f"AI сгенерировал {len(ai_recommendations)} рекомендаций для {sport_type}")
             return ai_recommendations
         except Exception as e:
@@ -130,7 +137,7 @@ class EnhancedLiveSystem:
             # Генерируем обычный HTML отчет
             html_report = self.report_generator.generate_report(all_recommendations)
             
-            # Генерируем улучшенный AI-отчет для Telegram
+            # Генерируем улучшенный AI-отчет для Telegram (с московским временем и фильтрацией)
             ai_telegram_report = enhanced_formatter.format_enhanced_report(all_recommendations)
             
             # Сохраняем отчеты в файлы
@@ -151,7 +158,9 @@ class EnhancedLiveSystem:
             
             # Отправляем в Telegram канал
             logger.info("Отправка AI-рекомендаций в Telegram канал...")
-            telegram_success = self.telegram_integration.send_ai_recommendations(all_recommendations)
+            # Используем улучшенный форматтер с московским временем и фильтрацией
+            enhanced_telegram_report = enhanced_formatter.format_enhanced_report(all_recommendations)
+            telegram_success = self.telegram_integration.send_formatted_report(enhanced_telegram_report)
             
             if telegram_success:
                 logger.info("✅ AI-рекомендации успешно отправлены в Telegram канал")

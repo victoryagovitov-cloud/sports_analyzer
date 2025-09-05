@@ -7,6 +7,7 @@ import logging
 from typing import List, Dict
 from datetime import datetime
 from multi_source_controller import MatchData
+from moscow_time import format_moscow_time_for_telegram, filter_live_matches_by_time
 
 logger = logging.getLogger(__name__)
 
@@ -18,17 +19,31 @@ class EnhancedTelegramFormatter:
     
     def format_enhanced_report(self, recommendations: List[MatchData]) -> str:
         """
-        Форматирует отчет по новому шаблону промпта
+        Форматирует отчет по новому шаблону промпта с московским временем
         """
         if not recommendations:
             return self._format_no_recommendations()
         
-        # Группируем по видам спорта
-        by_sport = self._group_by_sport(recommendations)
+        # Фильтруем завершившиеся матчи
+        active_recommendations = []
+        for rec in recommendations:
+            sport_type = getattr(rec, 'sport_type', getattr(rec, 'sport', 'football'))
+            filtered = filter_live_matches_by_time([rec], sport_type)
+            if filtered:
+                active_recommendations.extend(filtered)
         
-        # Формируем заголовок
-        current_time = datetime.now()
-        time_str = current_time.strftime("%H:%M МСК, %d.%m.%Y")
+        if not active_recommendations:
+            logger.warning("⚠️  Все рекомендации относятся к завершившимся матчам!")
+            return self._format_no_recommendations_finished_matches()
+        
+        if len(active_recommendations) < len(recommendations):
+            logger.info(f"📊 Исключено {len(recommendations) - len(active_recommendations)} завершившихся матчей")
+        
+        # Группируем по видам спорта
+        by_sport = self._group_by_sport(active_recommendations)
+        
+        # Формируем заголовок с московским временем
+        time_str = format_moscow_time_for_telegram()
         
         report = f"""🎯 <b>LIVE-ПРЕДЛОЖЕНИЯ НА</b> (<i>{time_str}</i>) <b>🎯</b>
 <b>—————————————</b>
@@ -142,10 +157,24 @@ class EnhancedTelegramFormatter:
         except Exception:
             return "1.50-1.80"
     
+    def _format_no_recommendations_finished_matches(self) -> str:
+        """Форматирует сообщение когда все матчи завершились"""
+        time_str = format_moscow_time_for_telegram()
+        
+        return f"""🎯 <b>LIVE-АНАЛИЗ НА</b> (<i>{time_str}</i>) <b>🎯</b>
+
+⚠️ <b>Все найденные матчи уже завершились</b>
+
+Система проанализировала live-матчи, но они завершились к моменту формирования отчета.
+
+🔄 Следующий анализ актуальных матчей через 45 минут.
+
+——————————————————
+💎 <b>TrueLiveBet – Только актуальные рекомендации!</b> 💎"""
+
     def _format_no_recommendations(self) -> str:
         """Форматирует сообщение об отсутствии рекомендаций"""
-        current_time = datetime.now()
-        time_str = current_time.strftime("%H:%M МСК, %d.%m.%Y")
+        time_str = format_moscow_time_for_telegram()
         
         return f"""🎯 <b>LIVE-АНАЛИЗ НА</b> (<i>{time_str}</i>) <b>🎯</b>
 

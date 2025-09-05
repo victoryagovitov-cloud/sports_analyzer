@@ -4,6 +4,7 @@
 
 from typing import List
 from datetime import datetime
+from moscow_time import format_moscow_time_for_telegram
 from multi_source_controller import MatchData
 
 class SimpleReportGenerator:
@@ -14,8 +15,7 @@ class SimpleReportGenerator:
         if not recommendations:
             return "Нет рекомендаций для отчета"
         
-        current_time = datetime.now()
-        time_str = current_time.strftime("%H:%M МСК, %d.%m.%Y")
+        time_str = format_moscow_time_for_telegram()
         
         # Группируем по видам спорта
         by_sport = {}
