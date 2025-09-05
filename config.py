@@ -55,9 +55,9 @@ ANALYSIS_SETTINGS = {
     'retry_delay_seconds': 5,  # Задержка между повторными попытками
     'watchdog_interval_seconds': 60,  # Интервал проверки watchdog (1 минута)
     'max_memory_usage_percent': 80,  # Максимальное использование памяти (%)
-    # AI анализаторы (возврат к OpenAI GPT)
-    'use_cursor_claude': False,  # Отключаем экспериментальный Claude
-    'use_openai_gpt': True,      # Возвращаем OpenAI как основной анализатор
+    # AI анализаторы (интеграция с Claude API)
+    'use_cursor_claude': True,   # Включаем Claude через API
+    'use_openai_gpt': False,     # Отключаем OpenAI (используем Claude)
     'openai_model': 'gpt-4o-mini',  # Модель GPT для использования
     'openai_max_tokens': 2000,  # Максимальное количество токенов
     'openai_temperature': 0.1,  # Температура для более консистентных результатов
