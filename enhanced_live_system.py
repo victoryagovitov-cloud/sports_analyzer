@@ -21,6 +21,8 @@ from claude_final_integration import ClaudeFinalIntegration
 from ai_telegram_generator import AITelegramGenerator
 from telegram_integration import TelegramIntegration
 from system_watchdog import system_watchdog
+from enhanced_telegram_formatter import enhanced_formatter
+from totals_calculator import totals_calculator
 
 # Настройка логирования
 logging.basicConfig(
@@ -69,6 +71,29 @@ class EnhancedLiveSystem:
             logger.error(f"Ошибка AI-анализа для {sport_type}: {e}")
             return []
     
+    def _analyze_handball_totals(self, handball_matches: List[MatchData]) -> List[MatchData]:
+        """Анализирует тоталы для гандбольных матчей"""
+        totals_recommendations = []
+        
+        for match in handball_matches:
+            try:
+                # Рассчитываем тоталы по новой формуле
+                totals_data = totals_calculator.calculate_handball_totals(match)
+                
+                if totals_data:
+                    # Создаем рекомендацию по тоталам
+                    totals_rec = totals_calculator.create_totals_recommendation(match, totals_data)
+                    if totals_rec:
+                        totals_recommendations.append(totals_rec)
+                        
+            except Exception as e:
+                logger.error(f"Ошибка анализа тоталов для {match.team1} vs {match.team2}: {e}")
+        
+        if totals_recommendations:
+            logger.info(f"📊 Найдено {len(totals_recommendations)} рекомендаций по тоталам")
+        
+        return totals_recommendations
+    
     def run_analysis_cycle(self):
         """Запуск одного цикла анализа"""
         logger.info("=" * 60)
@@ -88,6 +113,12 @@ class EnhancedLiveSystem:
             try:
                 recommendations = self.analyze_sport(sport)
                 all_recommendations.extend(recommendations)
+                
+                # Добавляем анализ тоталов для гандбола
+                if sport == 'handball' and recommendations:
+                    totals_recommendations = self._analyze_handball_totals(recommendations)
+                    all_recommendations.extend(totals_recommendations)
+                
                 system_watchdog.heartbeat()  # Обновляем heartbeat после каждого спорта
             except Exception as e:
                 logger.error(f"Ошибка при анализе {sport}: {e}")
@@ -99,8 +130,8 @@ class EnhancedLiveSystem:
             # Генерируем обычный HTML отчет
             html_report = self.report_generator.generate_report(all_recommendations)
             
-            # Генерируем AI-отчет для Telegram
-            ai_telegram_report = self.ai_telegram_generator.generate_ai_telegram_report(all_recommendations)
+            # Генерируем улучшенный AI-отчет для Telegram
+            ai_telegram_report = enhanced_formatter.format_enhanced_report(all_recommendations)
             
             # Сохраняем отчеты в файлы
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -184,8 +215,8 @@ class EnhancedLiveSystem:
         logger.info("Отправка сообщения о запуске в Telegram канал...")
         self.telegram_integration.send_startup_message()
         
-        # Планируем выполнение каждые 50 минут
-        schedule.every(50).minutes.do(self.run_analysis_cycle)
+        # Планируем выполнение каждые 45 минут (по новому промпту)
+        schedule.every(45).minutes.do(self.run_analysis_cycle)
         
         # Запускаем первый анализ сразу
         self.run_analysis_cycle()

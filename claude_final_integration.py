@@ -25,20 +25,38 @@ class ClaudeFinalIntegration:
         # Проверяем, нужно ли использовать OpenAI
         if ANALYSIS_SETTINGS.get('use_openai_gpt', False):
             try:
-                from openai_integration import OpenAIAnalyzer
+                # Пробуем использовать улучшенный анализатор
+                from enhanced_openai_analyzer import EnhancedOpenAIAnalyzer
                 api_key = os.getenv('OPENAI_API_KEY')
                 if api_key:
-                    self.openai_analyzer = OpenAIAnalyzer(api_key)
+                    self.openai_analyzer = EnhancedOpenAIAnalyzer(api_key)
                     self.use_openai = True
-                    self.logger.info("✅ OpenAI интеграция активирована")
+                    self.use_enhanced = True
+                    self.logger.info("✅ Улучшенный OpenAI анализатор активирован")
                 else:
                     self.use_openai = False
+                    self.use_enhanced = False
                     self.logger.warning("⚠️  OpenAI API ключ не найден, используем эвристический анализ")
             except ImportError:
-                self.use_openai = False
-                self.logger.warning("⚠️  OpenAI библиотека не найдена, используем эвристический анализ")
+                try:
+                    # Fallback на обычный анализатор
+                    from openai_integration import OpenAIAnalyzer
+                    api_key = os.getenv('OPENAI_API_KEY')
+                    if api_key:
+                        self.openai_analyzer = OpenAIAnalyzer(api_key)
+                        self.use_openai = True
+                        self.use_enhanced = False
+                        self.logger.info("✅ Базовый OpenAI анализатор активирован")
+                    else:
+                        self.use_openai = False
+                        self.use_enhanced = False
+                except ImportError:
+                    self.use_openai = False
+                    self.use_enhanced = False
+                    self.logger.warning("⚠️  OpenAI библиотека не найдена, используем эвристический анализ")
         else:
             self.use_openai = False
+            self.use_enhanced = False
             self.logger.info("OpenAI отключен в настройках, используем эвристический анализ")
     
     def analyze_matches_with_claude(self, matches: List[MatchData], sport_type: str) -> List[MatchData]:
@@ -51,7 +69,12 @@ class ClaudeFinalIntegration:
         # Используем OpenAI GPT если доступен
         if self.use_openai:
             try:
-                return self.openai_analyzer.analyze_matches_with_gpt(matches, sport_type)
+                if self.use_enhanced:
+                    # Используем улучшенный анализатор
+                    return self.openai_analyzer.analyze_matches_with_enhanced_gpt(matches, sport_type)
+                else:
+                    # Используем базовый анализатор
+                    return self.openai_analyzer.analyze_matches_with_gpt(matches, sport_type)
             except Exception as e:
                 self.logger.error(f"Ошибка OpenAI анализа, переключаемся на эвристический: {e}")
                 # Fallback на эвристический анализ

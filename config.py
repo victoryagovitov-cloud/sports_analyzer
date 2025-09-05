@@ -41,7 +41,7 @@ SCORES24_URLS = {
 
 # Настройки анализа
 ANALYSIS_SETTINGS = {
-    'cycle_interval_minutes': 50,
+    'cycle_interval_minutes': 45,  # Обновлено по новому промпту
     'fuzzy_match_threshold': 70,  # Минимальный процент совпадения для fuzzy matching
     'favorite_probability_threshold': 80,  # Минимальная вероятность победы фаворита
     'handball_goal_difference': 5,  # Минимальная разница в голаx для гандбола
@@ -59,7 +59,26 @@ ANALYSIS_SETTINGS = {
     'use_openai_gpt': True,  # Использовать OpenAI GPT вместо эвристического анализа
     'openai_model': 'gpt-4o-mini',  # Модель GPT для использования
     'openai_max_tokens': 2000,  # Максимальное количество токенов
-    'openai_temperature': 0.1  # Температура для более консистентных результатов
+    'openai_temperature': 0.1,  # Температура для более консистентных результатов
+    
+    # Новые критерии анализа по улучшенному промпту
+    'football_time_window': (25, 75),  # Временное окно для футбола (25-75 минута)
+    'football_table_position_diff': 5,  # Минимальная разница в таблице
+    'football_form_wins_required': 3,  # Минимум побед в последних 5 играх
+    'football_h2h_wins_required': 3,   # Минимум побед в личных встречах
+    'football_max_coefficient': 2.20,  # Максимальный коэффициент
+    
+    'tennis_rating_diff': 20,          # Минимальная разница в рейтинге
+    'tennis_form_wins_required': 4,    # Минимум побед в последних 5 матчах
+    'tennis_h2h_wins_required': 3,     # Минимум побед в H2H
+    'tennis_first_serve_min': 65,      # Минимальный процент первых подач
+    'tennis_max_coefficient': 1.70,    # Максимальный коэффициент
+    
+    'handball_goal_diff_min': 4,       # Минимальная разница в голах
+    'handball_second_half_start': 30,  # Начало второй половины
+    'handball_table_position_diff': 5, # Минимальная разница в таблице
+    'handball_avg_goals_min': 30,      # Минимальная средняя результативность
+    'handball_max_coefficient': 1.45   # Максимальный коэффициент
 }
 
 # Селекторы для парсинга Betboom

@@ -187,8 +187,8 @@ class LiveBettingAnalyzer:
         # Запуск системного watchdog
         system_watchdog.start()
         
-        # Планируем выполнение каждые N минут
-        schedule.every(self.cycle_interval).minutes.do(self.run_analysis_cycle)
+        # Планируем выполнение каждые 45 минут (по улучшенному промпту)
+        schedule.every(45).minutes.do(self.run_analysis_cycle)
         
         # Выполняем первый анализ сразу
         self.run_analysis_cycle()
