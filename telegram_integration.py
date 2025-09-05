@@ -5,6 +5,7 @@
 import logging
 import os
 from datetime import datetime
+from moscow_time import format_moscow_time_for_telegram, get_moscow_time
 from typing import List, Optional
 from telegram_bot import TelegramChannelManager, TELEGRAM_CONFIG
 from multi_source_controller import MatchData
@@ -71,7 +72,7 @@ class TelegramIntegration:
 ⚽ Футбол | 🎾 Теннис | 🏓 Настольный теннис | 🤾 Гандбол
 
 💎 <b>TrueLiveBet AI – Умные ставки с искусственным интеллектом!</b>
-        """.format(datetime.now().strftime("%H:%M МСК, %d.%m.%Y"))
+        """.format(format_moscow_time_for_telegram())
         
         return self.telegram_manager.bot.send_message(startup_message)
     
@@ -83,7 +84,7 @@ class TelegramIntegration:
 ⚠️ <b>Ошибка в системе TrueLiveBet AI</b>
 
 ❌ <b>Описание:</b> {error_message}
-⏰ <b>Время:</b> <i>{datetime.now().strftime("%H:%M МСК, %d.%m.%Y")}</i>
+⏰ <b>Время:</b> <i>{format_moscow_time_for_telegram()}</i>
 
 🔧 <b>Действие:</b> Проверьте логи системы
 
@@ -107,7 +108,7 @@ class TelegramIntegration:
 🎯 <b>Следующий анализ:</b> Через 50 минут
 
 💎 <b>TrueLiveBet AI – Умные ставки с искусственным интеллектом!</b>
-        """.format(datetime.now().strftime("%H:%M МСК, %d.%m.%Y"))
+        """.format(format_moscow_time_for_telegram())
         
         return self.telegram_manager.bot.send_message(no_recs_message)
     

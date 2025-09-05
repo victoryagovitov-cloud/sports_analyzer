@@ -6,6 +6,7 @@ import time
 import schedule
 import logging
 from datetime import datetime
+from moscow_time import get_moscow_time, format_moscow_time_for_logs
 from typing import List
 
 from http_controller_demo import HTTPControllerDemo
@@ -56,7 +57,8 @@ class LiveBettingAnalyzer:
         """Выполнение одного цикла анализа с таймаутом"""
         logger.info("=" * 50)
         logger.info("НАЧАЛО ЦИКЛА АНАЛИЗА")
-        logger.info(f"Время: {datetime.now().strftime('%H:%M:%S %d.%m.%Y')}")
+        moscow_time = get_moscow_time()
+        logger.info(f"Время: {moscow_time.strftime('%H:%M:%S %d.%m.%Y МСК')}")
         logger.info("=" * 50)
         
         # Запуск таймаут-менеджера

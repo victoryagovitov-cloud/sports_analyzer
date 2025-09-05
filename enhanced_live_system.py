@@ -25,7 +25,7 @@ from system_watchdog import system_watchdog
 from enhanced_telegram_formatter import enhanced_formatter
 from prompt_telegram_formatter import prompt_telegram_formatter
 from totals_calculator import totals_calculator
-from moscow_time import filter_live_matches_by_time, log_moscow_time
+from moscow_time import filter_live_matches_by_time, log_moscow_time, format_moscow_time_for_filename
 
 # Настройка логирования
 logging.basicConfig(
@@ -143,7 +143,7 @@ class EnhancedLiveSystem:
             ai_telegram_report = prompt_telegram_formatter.format_report_by_prompt(all_recommendations)
             
             # Сохраняем отчеты в файлы
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            timestamp = format_moscow_time_for_filename()
             
             # HTML отчет
             html_filename = f"live_analysis_report_{timestamp}.html"

@@ -7,6 +7,7 @@ import requests
 import json
 from typing import Optional, Dict, Any
 from datetime import datetime
+from moscow_time import format_moscow_time_for_telegram
 import os
 
 logger = logging.getLogger(__name__)
@@ -167,7 +168,7 @@ class TelegramChannelManager:
 🚀 Система готова к отправке AI-рекомендаций!
 
 💎 <b>TrueLiveBet AI – Умные ставки с искусственным интеллектом!</b>
-        """.format(datetime.now().strftime("%H:%M МСК, %d.%m.%Y"))
+        """.format(format_moscow_time_for_telegram())
         
         return self.bot.send_message(test_message)
     

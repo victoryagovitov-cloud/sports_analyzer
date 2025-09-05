@@ -9,6 +9,7 @@ import signal
 import os
 import time
 from datetime import datetime
+from moscow_time import get_moscow_time
 from enhanced_live_system import EnhancedLiveSystem
 from system_watchdog import system_watchdog, AnalysisTimeoutManager
 from config import ANALYSIS_SETTINGS
@@ -49,7 +50,8 @@ class ImprovedProductionSystem:
             logger.info("🚀 ЗАПУСК УЛУЧШЕННОЙ ПРОДАКШЕН СИСТЕМЫ")
             logger.info("=" * 70)
             logger.info(f"Режим работы: {mode}")
-            logger.info(f"Время запуска: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+            moscow_time = get_moscow_time()
+            logger.info(f"Время запуска: {moscow_time.strftime('%Y-%m-%d %H:%M:%S МСК')}")
             logger.info(f"Таймаут анализа: {ANALYSIS_SETTINGS['analysis_timeout_seconds']} сек")
             logger.info(f"Максимальное использование памяти: {ANALYSIS_SETTINGS['max_memory_usage_percent']}%")
             logger.info("=" * 70)
@@ -199,7 +201,8 @@ class ImprovedProductionSystem:
     def shutdown(self):
         """Корректное завершение работы"""
         logger.info("🛑 ЗАВЕРШЕНИЕ РАБОТЫ УЛУЧШЕННОЙ СИСТЕМЫ")
-        logger.info(f"Время завершения: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        moscow_time = get_moscow_time()
+        logger.info(f"Время завершения: {moscow_time.strftime('%Y-%m-%d %H:%M:%S МСК')}")
         
         # Остановка watchdog
         try:
