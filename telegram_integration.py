@@ -124,12 +124,10 @@ class TelegramIntegration:
                 self.logger.error("Не удалось подключиться к боту")
                 return False
             
-            # Отправляем тестовое сообщение
-            if not self.telegram_manager.send_test_message():
-                self.logger.error("Не удалось отправить тестовое сообщение")
-                return False
+            # Проверяем возможность отправки (БЕЗ отправки тестового сообщения)
+            # Убрано тестовое сообщение по запросу пользователя - только проверка API
             
-            self.logger.info("✅ Telegram подключение работает корректно")
+            self.logger.info("✅ Telegram подключение работает корректно (без тестового сообщения)")
             return True
             
         except Exception as e:

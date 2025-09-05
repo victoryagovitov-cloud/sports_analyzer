@@ -222,9 +222,8 @@ class EnhancedLiveSystem:
         # Запуск системного watchdog
         system_watchdog.start()
         
-        # Отправляем сообщение о запуске в Telegram
-        logger.info("Отправка сообщения о запуске в Telegram канал...")
-        self.telegram_integration.send_startup_message()
+        # Сообщение о запуске отключено (по запросу пользователя - лишняя информация)
+        # self.telegram_integration.send_startup_message()
         
         # Планируем выполнение каждые 45 минут (по новому промпту)
         schedule.every(45).minutes.do(self.run_analysis_cycle)

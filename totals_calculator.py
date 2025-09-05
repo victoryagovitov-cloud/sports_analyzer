@@ -148,9 +148,7 @@ class TotalsCalculator:
             predicted_total = totals_data.get('predicted_total', 0)
             recommendation = totals_data.get('recommendation', '')
             
-            reasoning = f"В матче {match} забито {total_goals} голов за {minute} минут. "
-            reasoning += f"{tempo} темп игры указывает на прогнозируемый тотал {predicted_total}. "
-            reasoning += f"Рекомендуется ставка {recommendation} на основе текущей динамики."
+            reasoning = f"{tempo.lower()} темп игры ({total_goals} голов за {minute} мин), прогноз {recommendation}."
             
             return reasoning
             

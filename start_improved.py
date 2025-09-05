@@ -65,13 +65,13 @@ class ImprovedProductionSystem:
             self.system = EnhancedLiveSystem()
             logger.info("✅ AI-система инициализирована")
             
-            # Тестирование Telegram
-            logger.info("📱 Тестирование Telegram интеграции...")
+            # Тихая проверка Telegram (БЕЗ отправки тестовых сообщений)
+            logger.info("📱 Проверка Telegram интеграции...")
             if not self.system.telegram_integration.test_connection():
                 logger.error("❌ Telegram интеграция не работает!")
                 logger.error("Проверьте настройки бота и канала")
                 return False
-            logger.info("✅ Telegram интеграция работает")
+            logger.info("✅ Telegram готов к работе (тестовые сообщения отключены)")
             
             self.running = True
             
