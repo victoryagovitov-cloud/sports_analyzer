@@ -1,0 +1,38 @@
+[
+  {
+    "timestamp": "2025-09-05T11:48:00.373044+03:00",
+    "sport_type": "manual_entry",
+    "team1": "Dinthar FC",
+    "team2": "Пекхэм Таун",
+    "score_at_prediction": "",
+    "minute_at_prediction": "",
+    "league": "",
+    "recommendation": "П1",
+    "confidence": 0.0,
+    "reasoning": "Ручной ввод результата",
+    "coefficient": "",
+    "source": "manual",
+    "actual_result": "loss",
+    "final_score": "",
+    "match_duration": "",
+    "notes": "Прогноз на победу Dinthar FC не прошел"
+  },
+  {
+    "timestamp": "2025-09-05T11:48:10.953468+03:00",
+    "sport_type": "manual_entry",
+    "team1": "Маркус Уолтерс",
+    "team2": "Энрике Бого",
+    "score_at_prediction": "",
+    "minute_at_prediction": "",
+    "league": "",
+    "recommendation": "Победа игрока",
+    "confidence": 0.0,
+    "reasoning": "Ручной ввод результата",
+    "coefficient": "",
+    "source": "manual",
+    "actual_result": "win",
+    "final_score": "",
+    "match_duration": "",
+    "notes": "Прогноз на теннис прошел успешно"
+  }
+]

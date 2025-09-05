@@ -26,6 +26,8 @@ from enhanced_telegram_formatter import enhanced_formatter
 from prompt_telegram_formatter import prompt_telegram_formatter
 from totals_calculator import totals_calculator
 from moscow_time import filter_live_matches_by_time, log_moscow_time, format_moscow_time_for_filename
+from ml_tracking_system import ml_tracker
+from daily_stats_scheduler import daily_stats_scheduler
 
 # Настройка логирования
 logging.basicConfig(
@@ -121,11 +123,19 @@ class EnhancedLiveSystem:
         for sport in sports:
             try:
                 recommendations = self.analyze_sport(sport)
+                
+                # Логируем каждый прогноз для ML
+                for rec in recommendations:
+                    ml_tracker.log_prediction(rec, sport)
+                
                 all_recommendations.extend(recommendations)
                 
                 # Добавляем анализ тоталов для гандбола
                 if sport == 'handball' and recommendations:
                     totals_recommendations = self._analyze_handball_totals(recommendations)
+                    # Логируем тоталы тоже
+                    for total_rec in totals_recommendations:
+                        ml_tracker.log_prediction(total_rec, 'handball_totals')
                     all_recommendations.extend(totals_recommendations)
                 
                 system_watchdog.heartbeat()  # Обновляем heartbeat после каждого спорта
@@ -222,6 +232,9 @@ class EnhancedLiveSystem:
         # Запуск системного watchdog
         system_watchdog.start()
         
+        # Настройка ежедневной статистики в 23:50 МСК
+        daily_stats_scheduler.setup_daily_stats_job()
+        
         # Сообщение о запуске отключено (по запросу пользователя - лишняя информация)
         # self.telegram_integration.send_startup_message()
         
@@ -235,6 +248,8 @@ class EnhancedLiveSystem:
         while True:
             try:
                 schedule.run_pending()
+                # Проверяем задачи дневной статистики
+                daily_stats_scheduler.check_and_run_pending_stats()
             except Exception as e:
                 logger.error(f"Ошибка в планировщике: {e}")
                 logger.exception("Детали ошибки планировщика:")

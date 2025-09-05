@@ -48,9 +48,19 @@ class ClaudeFinalIntegration:
                     self.use_openai = True
                     self.use_enhanced = True
                     self.logger.info("✅ Улучшенный OpenAI анализатор активирован")
+                    
+                    # Добавляем анализатор с внешними знаниями
+                    try:
+                        from external_knowledge_analyzer import get_external_knowledge_analyzer
+                        self.external_analyzer = get_external_knowledge_analyzer(api_key)
+                        self.use_external_knowledge = True
+                        self.logger.info("🌐 Анализатор с внешними знаниями активирован")
+                    except ImportError:
+                        self.use_external_knowledge = False
                 else:
                     self.use_openai = False
                     self.use_enhanced = False
+                    self.use_external_knowledge = False
                     self.logger.warning("⚠️  OpenAI API ключ не найден, используем эвристический анализ")
             except ImportError:
                 try:
@@ -61,17 +71,21 @@ class ClaudeFinalIntegration:
                         self.openai_analyzer = OpenAIAnalyzer(api_key)
                         self.use_openai = True
                         self.use_enhanced = False
+                        self.use_external_knowledge = False
                         self.logger.info("✅ Базовый OpenAI анализатор активирован")
                     else:
                         self.use_openai = False
                         self.use_enhanced = False
+                        self.use_external_knowledge = False
                 except ImportError:
                     self.use_openai = False
                     self.use_enhanced = False
+                    self.use_external_knowledge = False
                     self.logger.warning("⚠️  OpenAI библиотека не найдена, используем эвристический анализ")
         else:
             self.use_openai = False
             self.use_enhanced = False
+            self.use_external_knowledge = False
             self.logger.info("OpenAI отключен в настройках, используем эвристический анализ")
     
     def analyze_matches_with_claude(self, matches: List[MatchData], sport_type: str) -> List[MatchData]:
@@ -94,7 +108,17 @@ class ClaudeFinalIntegration:
         # Fallback на OpenAI GPT если доступен
         if self.use_openai:
             try:
-                self.logger.info("💰 Используем платный OpenAI (fallback)")
+                # Пробуем анализ с внешними знаниями (приоритет)
+                if self.use_external_knowledge:
+                    self.logger.info("🌐 Используем OpenAI с внешними знаниями")
+                    external_recommendations = self.external_analyzer.analyze_with_external_knowledge(matches, sport_type)
+                    if external_recommendations:
+                        return external_recommendations
+                    else:
+                        self.logger.info("🌐 Внешние знания не дали рекомендаций, используем стандартный анализ")
+                
+                # Стандартный OpenAI анализ
+                self.logger.info("💰 Используем стандартный OpenAI анализ")
                 if self.use_enhanced:
                     return self.openai_analyzer.analyze_matches_with_enhanced_gpt(matches, sport_type)
                 else:
