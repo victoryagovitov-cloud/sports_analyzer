@@ -156,7 +156,8 @@ class ClaudeFinalIntegration:
             matches_text += f"   Счет: {match.score}\n"
             matches_text += f"   Минута: {match.minute}\n"
             matches_text += f"   Лига: {match.league}\n"
-            matches_text += f"   URL: {match.link}\n\n"
+            url = getattr(match, 'link', None) or getattr(match, 'url', None) or 'N/A'
+            matches_text += f"   URL: {url}\n\n"
         
         # Детальные правила анализа
         rules = {
@@ -514,16 +515,15 @@ class ClaudeFinalIntegration:
         """Создает рекомендацию на основе ответа Claude"""
         # Копируем матч
         recommendation = MatchData(
-            sport=original_match.sport_type,
+            sport=getattr(original_match, 'sport', None) or getattr(original_match, 'sport_type', None),
             team1=original_match.team1,
             team2=original_match.team2,
             score=original_match.score
         )
         recommendation.minute = original_match.minute
-        recommendation.sport_type = original_match.sport_type
-        recommendation.league = original_match.league
-        recommendation.url = original_match.url
-        recommendation.source = original_match.source
+        recommendation.league = getattr(original_match, 'league', '')
+        recommendation.link = getattr(original_match, 'link', None) or getattr(original_match, 'url', None) or ''
+        recommendation.source = getattr(original_match, 'source', '')
         
         # Добавляем данные от Claude
         recommendation.probability = claude_rec.get('confidence', 0) * 100
