@@ -24,18 +24,15 @@ class ClaudeFinalIntegration:
         
         # Приоритет: Cursor Claude (бесплатно) -> OpenAI (платно) -> эвристический
         
-        # Отключаем экспериментальный Claude (по запросу пользователя)
-        self.use_cursor_claude = ANALYSIS_SETTINGS.get('use_cursor_claude', False)
-        if self.use_cursor_claude:
-            try:
-                from cursor_claude_analyzer import cursor_claude_analyzer
-                self.cursor_claude = cursor_claude_analyzer
-                self.logger.info("🆓 БЕСПЛАТНЫЙ Claude через Cursor активирован!")
-            except ImportError:
-                self.use_cursor_claude = False
-                self.logger.warning("⚠️  Cursor Claude анализатор не найден")
-        else:
-            self.logger.info("Claude через Cursor отключен в настройках")
+        # Инициализируем универсальный анализатор
+        try:
+            from universal_ai_analyzer import get_universal_analyzer
+            self.universal_analyzer = get_universal_analyzer()
+            self.use_universal = True
+            self.logger.info("✅ Универсальный AI анализатор активирован!")
+        except ImportError:
+            self.use_universal = False
+            self.logger.warning("⚠️  Универсальный анализатор не найден")
         
         # Затем проверяем OpenAI как fallback
         if ANALYSIS_SETTINGS.get('use_openai_gpt', False):
@@ -95,15 +92,17 @@ class ClaudeFinalIntegration:
         if not matches:
             return []
         
-        # Приоритет анализаторов: Claude (бесплатно) -> OpenAI (платно) -> эвристический
-        
-        # Сначала пробуем бесплатный Claude через Cursor
-        if self.use_cursor_claude:
+        # Используем универсальный анализатор
+        if hasattr(self, 'use_universal') and self.use_universal:
             try:
-                self.logger.info("🆓 Используем БЕСПЛАТНЫЙ Claude через Cursor")
-                return self.cursor_claude.analyze_matches_with_cursor_claude(matches, sport_type)
+                self.logger.info("🎯 Используем универсальный AI анализатор")
+                # Конвертируем MatchData в словари
+                matches_dict = [asdict(match) for match in matches]
+                analyzed = self.universal_analyzer.analyze_matches(matches_dict, sport_type)
+                # Конвертируем обратно в MatchData
+                return self._convert_to_match_data(analyzed)
             except Exception as e:
-                self.logger.error(f"Ошибка Cursor Claude, переключаемся на OpenAI: {e}")
+                self.logger.error(f"Ошибка универсального анализатора: {e}")
         
         # Fallback на OpenAI GPT если доступен
         if self.use_openai:
@@ -532,3 +531,37 @@ class ClaudeFinalIntegration:
         recommendation.justification = claude_rec.get('reasoning', '')
         
         return recommendation
+    
+    def _convert_to_match_data(self, analyzed_matches: List[Dict[str, Any]]) -> List[MatchData]:
+        """Конвертирует словари обратно в MatchData объекты"""
+        from multi_source_controller import MatchData
+        
+        result = []
+        for match_dict in analyzed_matches:
+            try:
+                # Создаем MatchData из словаря
+                match_data = MatchData(
+                    team1=match_dict.get('team1', ''),
+                    team2=match_dict.get('team2', ''),
+                    score=match_dict.get('score', ''),
+                    minute=match_dict.get('minute', 0),
+                    sport_type=match_dict.get('sport_type', 'unknown'),
+                    league=match_dict.get('league', ''),
+                    url=match_dict.get('url', ''),
+                    source=match_dict.get('source', '')
+                )
+                
+                # Добавляем AI рекомендации если есть
+                if 'ai_recommendation' in match_dict:
+                    match_data.probability = match_dict.get('ai_confidence', 0) * 10
+                    match_data.recommendation_type = 'win' if match_dict.get('ai_recommendation') == 'СТАВКА' else 'skip'
+                    match_data.recommendation_value = match_dict.get('ai_recommendation', 'ПРОПУСК')
+                    match_data.justification = match_dict.get('ai_reasoning', '')
+                
+                result.append(match_data)
+                
+            except Exception as e:
+                self.logger.error(f"Ошибка конвертации матча: {e}")
+                continue
+        
+        return result
