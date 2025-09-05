@@ -24,15 +24,18 @@ class ClaudeFinalIntegration:
         
         # Приоритет: Cursor Claude (бесплатно) -> OpenAI (платно) -> эвристический
         
-        # Сначала пробуем бесплатный Claude через Cursor
-        try:
-            from cursor_claude_analyzer import cursor_claude_analyzer
-            self.cursor_claude = cursor_claude_analyzer
-            self.use_cursor_claude = True
-            self.logger.info("🆓 БЕСПЛАТНЫЙ Claude через Cursor активирован!")
-        except ImportError:
-            self.use_cursor_claude = False
-            self.logger.warning("⚠️  Cursor Claude анализатор не найден")
+        # Отключаем экспериментальный Claude (по запросу пользователя)
+        self.use_cursor_claude = ANALYSIS_SETTINGS.get('use_cursor_claude', False)
+        if self.use_cursor_claude:
+            try:
+                from cursor_claude_analyzer import cursor_claude_analyzer
+                self.cursor_claude = cursor_claude_analyzer
+                self.logger.info("🆓 БЕСПЛАТНЫЙ Claude через Cursor активирован!")
+            except ImportError:
+                self.use_cursor_claude = False
+                self.logger.warning("⚠️  Cursor Claude анализатор не найден")
+        else:
+            self.logger.info("Claude через Cursor отключен в настройках")
         
         # Затем проверяем OpenAI как fallback
         if ANALYSIS_SETTINGS.get('use_openai_gpt', False):
