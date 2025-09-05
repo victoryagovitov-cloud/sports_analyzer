@@ -22,7 +22,19 @@ class ClaudeFinalIntegration:
     def __init__(self):
         self.logger = logging.getLogger(self.__class__.__name__)
         
-        # Проверяем, нужно ли использовать OpenAI
+        # Приоритет: Cursor Claude (бесплатно) -> OpenAI (платно) -> эвристический
+        
+        # Сначала пробуем бесплатный Claude через Cursor
+        try:
+            from cursor_claude_analyzer import cursor_claude_analyzer
+            self.cursor_claude = cursor_claude_analyzer
+            self.use_cursor_claude = True
+            self.logger.info("🆓 БЕСПЛАТНЫЙ Claude через Cursor активирован!")
+        except ImportError:
+            self.use_cursor_claude = False
+            self.logger.warning("⚠️  Cursor Claude анализатор не найден")
+        
+        # Затем проверяем OpenAI как fallback
         if ANALYSIS_SETTINGS.get('use_openai_gpt', False):
             try:
                 # Пробуем использовать улучшенный анализатор
@@ -66,14 +78,23 @@ class ClaudeFinalIntegration:
         if not matches:
             return []
         
-        # Используем OpenAI GPT если доступен
+        # Приоритет анализаторов: Claude (бесплатно) -> OpenAI (платно) -> эвристический
+        
+        # Сначала пробуем бесплатный Claude через Cursor
+        if self.use_cursor_claude:
+            try:
+                self.logger.info("🆓 Используем БЕСПЛАТНЫЙ Claude через Cursor")
+                return self.cursor_claude.analyze_matches_with_cursor_claude(matches, sport_type)
+            except Exception as e:
+                self.logger.error(f"Ошибка Cursor Claude, переключаемся на OpenAI: {e}")
+        
+        # Fallback на OpenAI GPT если доступен
         if self.use_openai:
             try:
+                self.logger.info("💰 Используем платный OpenAI (fallback)")
                 if self.use_enhanced:
-                    # Используем улучшенный анализатор
                     return self.openai_analyzer.analyze_matches_with_enhanced_gpt(matches, sport_type)
                 else:
-                    # Используем базовый анализатор
                     return self.openai_analyzer.analyze_matches_with_gpt(matches, sport_type)
             except Exception as e:
                 self.logger.error(f"Ошибка OpenAI анализа, переключаемся на эвристический: {e}")
