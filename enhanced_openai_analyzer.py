@@ -104,29 +104,68 @@ class EnhancedOpenAIAnalyzer:
             return False
     
     def _is_tennis_match_enhanced_worthy(self, match: MatchData) -> bool:
-        """Проверка теннисного матча по новым критериям"""
+        """Проверка теннисного матча по критериям промпта"""
         try:
             score = match.score
-            # Ведущий выиграл первый сет или разрыв ≥3 гейма
-            if '-' in score:
-                if score.count('-') == 1:
+            minute = getattr(match, 'minute', '')
+            
+            # По промпту: "Ведущий выиграл первый сет или разрыв ≥ 3 гейма"
+            
+            # Проверяем разные форматы счета
+            if '-' in score and score.count('-') == 1:
+                # Формат "1-0", "2-1" - преимущество по сетам
+                try:
                     sets1, sets2 = map(int, score.split('-'))
-                    return sets1 != sets2  # Есть преимущество по сетам
-                elif '(' in score:  # Формат с геймами: "1-0 (6-2, 4-3)"
-                    return True  # Анализируем все матчи с детальным счетом
-            return True
+                    if sets1 != sets2:  # Есть преимущество по сетам
+                        return True
+                except ValueError:
+                    pass
+            
+            # Проверяем формат с геймами в скобках "1-0 (6-4, 3-2)"
+            if '(' in score and ')' in score:
+                return True  # Детальный счет = анализируем
+            
+            # Проверяем статус матча по минуте
+            if minute and any(keyword in minute.lower() for keyword in ['сет', 'set', 'партия']):
+                # Если указан номер сета - анализируем
+                return True
+            
+            # Если счет "0:0" и идет первый сет - НЕ анализируем (нет преимущества)
+            if score == "0:0" and "1-й сет" in minute:
+                return False
+                
+            return False  # Остальные не анализируем
+            
         except Exception:
-            return True
+            return False  # При ошибке не анализируем
     
     def _is_table_tennis_match_enhanced_worthy(self, match: MatchData) -> bool:
-        """Проверка настольного тенниса по новым критериям"""
+        """Проверка настольного тенниса по критериям промпта"""
         try:
             score = match.score
-            # Ведущий 1:0 или 2:0 по сетам
-            if '-' in score:
-                sets1, sets2 = map(int, score.split('-'))
-                return (sets1 == 1 and sets2 == 0) or (sets1 == 2 and sets2 == 0)
+            
+            # По промпту: "Ведущий 1:0 или 2:0 по сетам"
+            
+            if ':' in score:
+                try:
+                    sets1, sets2 = map(int, score.split(':'))
+                    # Ищем преимущество 1:0 или 2:0 (в любую сторону)
+                    return (sets1 == 1 and sets2 == 0) or (sets1 == 2 and sets2 == 0) or \
+                           (sets1 == 0 and sets2 == 1) or (sets1 == 0 and sets2 == 2)
+                except ValueError:
+                    pass
+            
+            # Проверяем формат с дефисом "1-0", "2-0"  
+            if '-' in score and score.count('-') == 1:
+                try:
+                    sets1, sets2 = map(int, score.split('-'))
+                    return (sets1 == 1 and sets2 == 0) or (sets1 == 2 and sets2 == 0) or \
+                           (sets1 == 0 and sets2 == 1) or (sets1 == 0 and sets2 == 2)
+                except ValueError:
+                    pass
+            
             return False
+            
         except Exception:
             return False
     
